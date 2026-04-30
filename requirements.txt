@@ -1,0 +1,7 @@
+crewai>=0.100.0
+crewai-tools>=0.100.0
+camoufox>=0.4.0
+PyQt6>=6.6.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+aiofiles>=23.0.0

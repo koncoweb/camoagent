@@ -1,0 +1,32 @@
+scrape_task:
+  description: |
+    Analyze the user's request: {task}
+    If navigation is needed (login, navigate to pages), use the camoufox tool with 'goto', 'click', or 'type_text' actions.
+    Extract data using 'get_content', 'get_element', or 'screenshot' actions.
+    Report all findings as structured data.
+  expected_output: |
+    Structured data extracted from the page, including URLs visited, elements found, and data extracted.
+  agent: navigator
+
+analysis_task:
+  description: |
+    Based on the scraped data:
+    1. Calculate relevant metrics (ROI, conversion rates, etc.)
+    2. Identify patterns and trends
+    3. Provide actionable insights
+    Format the analysis in a clear, structured manner.
+  expected_output: |
+    Detailed analysis with calculated metrics and insights.
+  agent: analyst
+
+report_task:
+  description: |
+    Create a final report based on the analysis.
+    Include:
+    - Summary of findings
+    - Key metrics and calculations
+    - Recommendations
+    Use markdown formatting for clarity.
+  expected_output: |
+    Final report in markdown format, ready to present to the user.
+  agent: reporter
