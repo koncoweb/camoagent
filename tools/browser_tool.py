@@ -1,4 +1,4 @@
-from crewai.tools import BaseTool, tool
+from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 from typing import Type, Optional, Any
 
@@ -6,156 +6,144 @@ from typing import Type, Optional, Any
 class BrowserConfig:
     _instance = None
     _page: Optional[Any] = None
-    _lock = None
+    _queue: Optional[Any] = None
 
-    def __new__(cls):
+    @classmethod
+    def get_instance(cls):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            import threading
-            cls._lock = threading.Lock()
+            cls._instance = cls()
         return cls._instance
 
     def set_page(self, page: Any):
-        with self._lock:
-            self._page = page
+        self._page = page
 
     def get_page(self) -> Optional[Any]:
-        with self._lock:
-            return self._page
+        return self._page
 
+    def set_queue(self, queue: Any):
+        self._queue = queue
 
-@tool("get_current_page_info")
-def get_current_page_info() -> str:
-    """Use this tool to get the URL and Title of the webpage that the user is currently viewing."""
-    page = BrowserConfig().get_page()
-    if page is None:
-        return "Error: Browser not ready."
-    try:
-        return f"Current URL: {page.url}\nCurrent Title: {page.title()}"
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-@tool("navigate_to_url")
-def navigate_to_url(url: str) -> str:
-    """Use this tool to navigate the browser to a specific URL."""
-    page = BrowserConfig().get_page()
-    if page is None:
-        return "Error: Browser not ready."
-    try:
-        page.goto(url)
-        return f"Successfully navigated to {url}"
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-@tool("get_page_content")
-def get_page_content() -> str:
-    """Use this tool to get the full HTML content of the current webpage."""
-    page = BrowserConfig().get_page()
-    if page is None:
-        return "Error: Browser not ready."
-    try:
-        return page.content()
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-@tool("click_element")
-def click_element(selector: str) -> str:
-    """Use this tool to click an element on the page using a CSS selector."""
-    page = BrowserConfig().get_page()
-    if page is None:
-        return "Error: Browser not ready."
-    try:
-        el = page.query_selector(selector)
-        if el:
-            el.click()
-            return f"Successfully clicked element: {selector}"
-        return f"Element not found: {selector}"
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-@tool("type_text")
-def type_text(selector: str, text: str) -> str:
-    """Use this tool to type text into an input field on the page using a CSS selector."""
-    page = BrowserConfig().get_page()
-    if page is None:
-        return "Error: Browser not ready."
-    try:
-        el = page.query_selector(selector)
-        if el:
-            el.fill(text)
-            return f"Successfully typed text into: {selector}"
-        return f"Element not found: {selector}"
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-# Keep the old class just in case anything else imports it, but we will use the new tools
-class BrowserToolInput(BaseModel):
-    action: str = Field(..., description="Action: goto, screenshot, get_content, get_element, click, type_text, get_info")
-    value: Optional[str] = Field(default="", description="URL, selector, or 'selector|text' for type_text. Can be empty for get_info and get_content.")
-
-
-class BrowserTool(BaseTool):
-    name: str = "browser"
-    description: str = """Browser control tool. Actions:
-    - goto: Navigate to URL (value = URL)
-    - screenshot: Take screenshot (value = optional file path)
-    - get_info: Get current page URL and Title
-    - get_content: Get page HTML content
-    - get_element: Get element text (value = CSS selector)
-    - click: Click element (value = CSS selector)
-    - type_text: Type into input (value = 'selector|text')"""
-    args_schema: Type[BaseModel] = BrowserToolInput
-
-    def __init__(self):
-        super().__init__()
-        self._config = BrowserConfig()
-
-    def _run(self, action: str, value: Optional[str] = None) -> str:
-        page = self._config.get_page()
-
-        if page is None:
-            return "Error: Browser not ready. Please open the browser first."
-
+    def execute_command(self, action: str, params: dict = None) -> str:
+        if self._queue is None:
+            return "Error: Browser command queue not initialized."
+        
+        from queue import Queue
+        result_queue = Queue()
+        
+        self._queue.put({
+            "action": action,
+            "params": params or {},
+            "result_queue": result_queue
+        })
+        
         try:
-            if action == "goto":
-                page.goto(value)
-                return f"Navigated to {value}"
-
-            elif action == "get_info":
-                return f"Current URL: {page.url}\nCurrent Title: {page.title()}"
-
-            elif action == "screenshot":
-                path = value if value else "screenshot.png"
-                page.screenshot(path=path)
-                return f"Screenshot saved to {path}"
-
-            elif action == "get_content":
-                return page.content()
-
-            elif action == "get_element":
-                el = page.query_selector(value)
-                if el:
-                    return el.inner_text()
-                return f"Element not found: {value}"
-
-            elif action == "click":
-                el = page.query_selector(value)
-                if el:
-                    el.click()
-                    return f"Clicked: {value}"
-                return f"Element not found: {value}"
-
-            elif action == "type_text":
-                if value and "|" in value:
-                    selector, text = value.split("|", 1)
-                    el = page.query_selector(selector)
-                    if el:
-                        el.fill(text)
-                        return f"Typed '{text}' into {selector}"
-                    return f"Element not found: {selector}"
-                return "Error: Use format 'selector|text'"
-
-            return f"Unknown action: {action}"
-
+            # Wait for result with timeout
+            result = result_queue.get(timeout=30)
+            if result["status"] == "success":
+                return result["data"]
+            else:
+                return f"Error: {result['message']}"
         except Exception as e:
-            return f"Error: {str(e)}"
+            return f"Error: Command timed out or failed: {str(e)}"
+
+
+class GetCurrentPageInfoInput(BaseModel):
+    pass
+
+
+class GetCurrentPageInfoTool(BaseTool):
+    name: str = "get_current_page_info"
+    description: str = "Use this tool to get the URL and Title of the webpage that the user is currently viewing. This is the FIRST tool you should use when the user asks about the current page or browser state."
+    args_schema: Type[BaseModel] = GetCurrentPageInfoInput
+
+    def _run(self, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("get_info")
+
+
+class NavigateToUrlInput(BaseModel):
+    url: str = Field(..., description="The URL to navigate to")
+
+
+class NavigateToUrlTool(BaseTool):
+    name: str = "navigate_to_url"
+    description: str = "Use this tool to navigate the browser to a specific URL. Required: url parameter."
+    args_schema: Type[BaseModel] = NavigateToUrlInput
+
+    def _run(self, url: str, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("goto", {"url": url})
+
+
+class GetPageContentInput(BaseModel):
+    pass
+
+
+class GetPageContentTool(BaseTool):
+    name: str = "get_page_content"
+    description: str = "Use this tool to get the full HTML content of the current webpage. Only use this if you need raw HTML."
+    args_schema: Type[BaseModel] = GetPageContentInput
+
+    def _run(self, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("get_content")
+
+
+class GetPageTextInput(BaseModel):
+    pass
+
+class GetPageTextTool(BaseTool):
+    name: str = "get_page_text"
+    description: str = "Use this tool to get ONLY the visible text (innerText) of the current webpage. This is HIGHLY PREFERRED over get_page_content for reading articles, data, or scraping Shopee/E-commerce sites."
+    args_schema: Type[BaseModel] = GetPageTextInput
+
+    def _run(self, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("get_text")
+
+
+class ScrollDownInput(BaseModel):
+    pass
+
+class ScrollDownTool(BaseTool):
+    name: str = "scroll_down"
+    description: str = "Use this tool to scroll down the page. Extremely useful for e-commerce sites like Shopee that use lazy-loading to load more products or data."
+    args_schema: Type[BaseModel] = ScrollDownInput
+
+    def _run(self, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("scroll_down")
+
+
+class ClickElementInput(BaseModel):
+    selector: str = Field(..., description="CSS selector of the element to click")
+
+
+class ClickElementTool(BaseTool):
+    name: str = "click_element"
+    description: str = "Use this tool to click an element on the page using a CSS selector. Example: button.submit, input#username"
+    args_schema: Type[BaseModel] = ClickElementInput
+
+    def _run(self, selector: str, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("click", {"selector": selector})
+
+
+class TypeTextInput(BaseModel):
+    selector: str = Field(..., description="CSS selector of the input element")
+    text: str = Field(..., description="Text to type into the element")
+
+
+class TypeTextTool(BaseTool):
+    name: str = "type_text"
+    description: str = "Use this tool to type text into an input field on the page using a CSS selector."
+    args_schema: Type[BaseModel] = TypeTextInput
+
+    def _run(self, selector: str, text: str, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("type", {"selector": selector, "text": text})
+
+
+def get_all_tools():
+    return [
+        GetCurrentPageInfoTool(),
+        NavigateToUrlTool(),
+        GetPageContentTool(),
+        GetPageTextTool(),
+        ScrollDownTool(),
+        ClickElementTool(),
+        TypeTextTool(),
+    ]

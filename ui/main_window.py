@@ -299,11 +299,38 @@ class ChatWidget(QFrame):
             self.message_input.clear()
 
     def add_user_message(self, message: str):
-        msg_widget = QLabel(f"<div style='color:#E0E0E0; background:#2D2D30; padding:10px 15px; border-radius:15px; max-width:500px;'>{message}</div>")
-        msg_widget.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.chat_layout.addWidget(msg_widget)
+        msg_widget = QLabel(message)
+        msg_widget.setWordWrap(True)
+        msg_widget.setStyleSheet("""
+            QLabel {
+                color: #E0E0E0;
+                background-color: #2D2D30;
+                padding: 12px 18px;
+                border-radius: 15px;
+                font-size: 13px;
+                margin-left: 50px;
+            }
+        """)
+        self.chat_layout.addWidget(msg_widget, 0, Qt.AlignmentFlag.AlignRight)
 
     def add_agent_message(self, message: str):
-        msg_widget = QLabel(f"<div style='color:#4EC9B0; background:#2D2D30; padding:10px 15px; border-radius:15px; max-width:500px;'>🤖 {message}</div>")
-        msg_widget.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.chat_layout.addWidget(msg_widget)
+        msg_widget = QLabel()
+        msg_widget.setTextFormat(Qt.TextFormat.MarkdownText)
+        msg_widget.setText(f"🤖 **Assistant:**\n\n{message}")
+        msg_widget.setWordWrap(True)
+        msg_widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.LinksAccessibleByMouse)
+        msg_widget.setOpenExternalLinks(True)
+        msg_widget.setStyleSheet("""
+            QLabel {
+                color: #4EC9B0;
+                background-color: #2D2D30;
+                padding: 16px;
+                border-radius: 12px;
+                font-size: 14px;
+                line-height: 1.5;
+                margin-right: 30px;
+                margin-top: 10px;
+                margin-bottom: 10px;
+            }
+        """)
+        self.chat_layout.addWidget(msg_widget, 0, Qt.AlignmentFlag.AlignLeft)

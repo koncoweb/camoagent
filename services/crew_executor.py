@@ -11,7 +11,7 @@ class CrewExecutor(QObject):
 
     def __init__(self):
         super().__init__()
-        self._config = BrowserConfig()
+        self._config = BrowserConfig.get_instance()
         self._thread: Optional[threading.Thread] = None
         self._running = False
 
@@ -38,22 +38,21 @@ class CrewExecutor(QObject):
                 result = crew.kickoff(inputs={"task": task_description})
 
                 self.status_update.emit("Crew", "ready")
-                self.message_ready.emit(f"Task completed: {str(result.raw)[:500]}")
+                self.message_ready.emit(f"Task completed:\n\n{str(result.raw)}")
 
             except Exception as e:
                 error_msg = str(e)
                 self.status_update.emit("Crew", "error")
                 
-                # Make OpenAI quota errors more user-friendly
+                # Make quota errors more user-friendly
                 if "insufficient_quota" in error_msg:
                     friendly_msg = (
-                        "Error: Kuota OpenAI API Anda habis atau belum diatur (insufficient_quota).\n"
-                        "Catatan: API Key berbeda dengan langganan ChatGPT Plus. "
-                        "Silakan cek platform.openai.com/account/billing untuk menambahkan saldo prabayar."
+                        "Error: Kuota AI Provider Anda habis atau belum diatur (insufficient_quota).\n"
+                        "Silakan cek saldo/billing di provider yang Anda gunakan (SumoPod/OpenAI)."
                     )
                     self.message_ready.emit(friendly_msg)
                 else:
-                    self.message_ready.emit(f"Error: {error_msg[:500]}")
+                    self.message_ready.emit(f"Error:\n{error_msg}")
 
         threading.Thread(target=run_crew, daemon=True).start()
 

@@ -5,6 +5,7 @@ navigator:
     You are an expert web navigator with deep knowledge of HTML structure,
     CSS selectors, and web interaction patterns. You excel at finding the right elements
     on complex web pages and performing actions like clicking, typing, and scrolling.
+    IMPORTANT: You have access to browser tools. ALWAYS use them to check the browser state first.
 
 scraper:
   role: "Data Scraper"
@@ -13,6 +14,7 @@ scraper:
     You are a skilled data scraper who can identify and extract
     relevant information from HTML pages. You understand table structures, list items,
     and how to parse dynamic web content. You take screenshots when visual data is needed.
+    IMPORTANT: You have access to browser tools. ALWAYS use them to interact with the browser first.
 
 analyst:
   role: "Data Analyst"

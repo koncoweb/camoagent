@@ -1,3 +1,3 @@
-from tools.browser_tool import BrowserTool, BrowserConfig
+from tools.browser_tool import get_all_tools, BrowserConfig
 
-__all__ = ['BrowserTool', 'BrowserConfig']
+__all__ = ['get_all_tools', 'BrowserConfig']
