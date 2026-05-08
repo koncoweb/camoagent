@@ -6,6 +6,7 @@ Dokumentasi ini menjelaskan konfigurasi dan alur kerja agen kecerdasan buatan da
 - **Provider:** SumoPod AI (kompatibel dengan OpenAI SDK).
 - **Model:** `deepseek-v4-pro`. Dipilih karena kemampuannya yang sangat baik dalam *reasoning* (penalaran) dan menangani tugas kompleks tanpa *hang*.
 - **Endpoint Kustom:** Menggunakan `base_url` yang menunjuk ke `https://ai.sumopod.com/v1`.
+- **Max Tokens:** `4096`. Parameter ini mengontrol jumlah maksimum token dalam respons LLM untuk mencegah respons terpotong.
 
 ## Penonaktifan Fitur Spesifik (Workarounds)
 Untuk memastikan kompatibilitas dengan SumoPod AI yang tidak menyediakan model bawaan `text-embedding-ada-002`, fitur berikut secara eksplisit dinonaktifkan di `browser_crew.py`:

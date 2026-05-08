@@ -137,6 +137,45 @@ class TypeTextTool(BaseTool):
         return BrowserConfig.get_instance().execute_command("type", {"selector": selector, "text": text})
 
 
+class PressKeyInput(BaseModel):
+    key: str = Field(..., description="Key to press: 'Escape', 'Enter', 'Tab', 'Backspace', 'ArrowUp', 'ArrowDown', etc.")
+
+
+class PressKeyTool(BaseTool):
+    name: str = "press_key"
+    description: str = "Press a keyboard key. CRITICAL for closing React/Headless UI modals - press 'Escape' to close them. Also useful for navigating forms."
+    args_schema: Type[BaseModel] = PressKeyInput
+
+    def _run(self, key: str, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("press_key", {"key": key})
+
+
+class EvaluateJSInput(BaseModel):
+    script: str = Field(..., description="JavaScript code to execute. Can return a value.")
+
+
+class EvaluateJSTool(BaseTool):
+    name: str = "evaluate_js"
+    description: str = "Execute custom JavaScript code on the page. Use this for complex DOM manipulation like removing React portals, closing modals, or any custom logic that regular tools can't handle."
+    args_schema: Type[BaseModel] = EvaluateJSInput
+
+    def _run(self, script: str, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("evaluate_js", {"script": script})
+
+
+class DismissDialogInput(BaseModel):
+    pass
+
+
+class DismissDialogTool(BaseTool):
+    name: str = "dismiss_dialog"
+    description: str = "SPECIFICALLY designed to close modal dialogs, popups, and overlays. Tries multiple methods: 1) Press Escape key, 2) Click backdrop/overlay, 3) Click close button, 4) Remove portal elements. Use this FIRST before any other method for closing dialogs."
+    args_schema: Type[BaseModel] = DismissDialogInput
+
+    def _run(self, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("dismiss_dialog", {})
+
+
 def get_all_tools():
     return [
         GetCurrentPageInfoTool(),
@@ -146,4 +185,7 @@ def get_all_tools():
         ScrollDownTool(),
         ClickElementTool(),
         TypeTextTool(),
+        PressKeyTool(),
+        EvaluateJSTool(),
+        DismissDialogTool(),
     ]

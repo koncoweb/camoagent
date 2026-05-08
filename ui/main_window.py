@@ -1,12 +1,15 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QTextEdit, QScrollArea,
-    QFrame, QSizePolicy, QSpacerItem
+    QFrame, QSizePolicy, QSpacerItem, QStackedWidget
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QColor, QPainter, QPixmap, QIcon
 
+from ui.panels import CrewPanel, AnalyticsPanel, SettingsPanel
+
 import os
+import markdown
 
 
 class IconButton(QPushButton):
@@ -165,13 +168,21 @@ class MainWindow(QFrame):
         self.icon_bar.icon_clicked.connect(self.on_icon_clicked)
         main_layout.addWidget(self.icon_bar)
 
-        center_widget = QWidget()
-        center_layout = QVBoxLayout(center_widget)
+        self.stacked_widget = QStackedWidget()
 
         self.chat_widget = ChatWidget()
-        center_layout.addWidget(self.chat_widget)
+        self.stacked_widget.addWidget(self.chat_widget)
 
-        main_layout.addWidget(center_widget, stretch=1)
+        self.crew_panel = CrewPanel()
+        self.stacked_widget.addWidget(self.crew_panel)
+
+        self.analytics_panel = AnalyticsPanel()
+        self.stacked_widget.addWidget(self.analytics_panel)
+
+        self.settings_panel = SettingsPanel()
+        self.stacked_widget.addWidget(self.settings_panel)
+
+        main_layout.addWidget(self.stacked_widget, stretch=1)
 
         self.status_panel = StatusPanel()
         main_layout.addWidget(self.status_panel)
@@ -179,9 +190,11 @@ class MainWindow(QFrame):
     def setup_connections(self):
         self.chat_widget.send_message.connect(self.on_chat_message)
         self.crew_executor.status_update.connect(self.status_panel.update_status)
+        self.crew_executor.status_update.connect(self.crew_panel.update_status)
         self.crew_executor.message_ready.connect(self.chat_widget.add_agent_message)
         
-        # Connect browser manager signals
+        self.settings_panel.settings_changed.connect(self.on_settings_changed)
+        
         self.browser_manager.browser_ready.connect(lambda: self.status_panel.log_browser_event("Browser is ready!"))
         self.browser_manager.error_occurred.connect(lambda e: self.status_panel.log_browser_event(f"Browser Error: {e}"))
         self.browser_manager.browser_closed.connect(lambda: self.status_panel.log_browser_event("Browser closed"))
@@ -190,12 +203,19 @@ class MainWindow(QFrame):
         if icon_name == "browser":
             self.browser_manager.launch_browser()
             self.status_panel.log_browser_event("Launching Camoufox browser...")
+            self.stacked_widget.setCurrentWidget(self.chat_widget)
         elif icon_name == "crew":
-            self.status_panel.log_browser_event("Crew panel opened")
+            self.status_panel.log_browser_event("Crew Configuration panel opened")
+            self.stacked_widget.setCurrentWidget(self.crew_panel)
         elif icon_name == "analytics":
             self.status_panel.log_browser_event("Analytics panel opened")
+            self.stacked_widget.setCurrentWidget(self.analytics_panel)
         elif icon_name == "settings":
             self.status_panel.log_browser_event("Settings panel opened")
+            self.stacked_widget.setCurrentWidget(self.settings_panel)
+
+    def on_settings_changed(self, settings: dict):
+        self.status_panel.log_browser_event(f"Settings updated: Model={settings['model']}, MaxIter={settings['max_iter']}")
 
     def on_chat_message(self, message: str):
         self.chat_widget.add_user_message(message)
@@ -299,38 +319,155 @@ class ChatWidget(QFrame):
             self.message_input.clear()
 
     def add_user_message(self, message: str):
-        msg_widget = QLabel(message)
-        msg_widget.setWordWrap(True)
+        msg_widget = QTextEdit()
+        msg_widget.setReadOnly(True)
+        msg_widget.setPlainText(message)
+        msg_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        msg_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        msg_widget.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        
         msg_widget.setStyleSheet("""
-            QLabel {
+            QTextEdit {
                 color: #E0E0E0;
                 background-color: #2D2D30;
-                padding: 12px 18px;
+                border: none;
                 border-radius: 15px;
+                padding: 12px 18px;
                 font-size: 13px;
+                line-height: 1.5;
                 margin-left: 50px;
+                margin-top: 8px;
+                margin-bottom: 8px;
             }
         """)
+        
+        # Calculate height based on content
+        doc = msg_widget.document()
+        doc.setTextWidth(400) # Fixed width for height calculation
+        height = int(doc.size().height()) + 25
+        msg_widget.setFixedHeight(height)
+        msg_widget.setFixedWidth(450)
+        
         self.chat_layout.addWidget(msg_widget, 0, Qt.AlignmentFlag.AlignRight)
 
     def add_agent_message(self, message: str):
-        msg_widget = QLabel()
-        msg_widget.setTextFormat(Qt.TextFormat.MarkdownText)
-        msg_widget.setText(f"🤖 **Assistant:**\n\n{message}")
-        msg_widget.setWordWrap(True)
-        msg_widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.LinksAccessibleByMouse)
-        msg_widget.setOpenExternalLinks(True)
+        html_content = markdown.markdown(
+            f"🤖 **Assistant:**\n\n{message}",
+            extensions=['tables', 'fenced_code', 'nl2br']
+        )
+        
+        styled_html = f"""
+        <html>
+        <head>
+        <style>
+        body {{
+            color: #4EC9B0;
+            background-color: #2D2D30;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 16px;
+            margin: 0;
+        }}
+        h1, h2, h3, h4, h5, h6 {{
+            color: #4EC9B0;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }}
+        p {{
+            margin: 8px 0;
+        }}
+        strong {{
+            color: #FFFFFF;
+        }}
+        em {{
+            color: #CE9178;
+        }}
+        code {{
+            background-color: #1E1E1E;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #DCDCAA;
+        }}
+        pre {{
+            background-color: #1E1E1E;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }}
+        pre code {{
+            background-color: transparent;
+            padding: 0;
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }}
+        th, td {{
+            border: 1px solid #3C3C3C;
+            padding: 8px 12px;
+            text-align: left;
+        }}
+        th {{
+            background-color: #1E1E1E;
+            color: #4EC9B0;
+        }}
+        tr:nth-child(even) {{
+            background-color: #252526;
+        }}
+        a {{
+            color: #569CD6;
+            text-decoration: none;
+        }}
+        a:hover {{
+            text-decoration: underline;
+        }}
+        ul, ol {{
+            margin: 8px 0;
+            padding-left: 24px;
+        }}
+        li {{
+            margin: 4px 0;
+        }}
+        blockquote {{
+            border-left: 4px solid #4EC9B0;
+            margin: 10px 0;
+            padding: 8px 16px;
+            background-color: #252526;
+            color: #9CDCFE;
+        }}
+        </style>
+        </head>
+        <body>{html_content}</body>
+        </html>
+        """
+        
+        msg_widget = QTextEdit()
+        msg_widget.setReadOnly(True)
+        msg_widget.setHtml(styled_html)
+        msg_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        msg_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        msg_widget.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        
         msg_widget.setStyleSheet("""
-            QLabel {
-                color: #4EC9B0;
+            QTextEdit {
                 background-color: #2D2D30;
-                padding: 16px;
+                border: none;
                 border-radius: 12px;
-                font-size: 14px;
-                line-height: 1.5;
                 margin-right: 30px;
-                margin-top: 10px;
-                margin-bottom: 10px;
+                margin-top: 8px;
+                margin-bottom: 8px;
             }
         """)
+        
+        # Calculate height based on content
+        doc = msg_widget.document()
+        doc.setTextWidth(600) # Fixed width for height calculation
+        height = int(doc.size().height()) + 30
+        msg_widget.setFixedHeight(height)
+        msg_widget.setFixedWidth(650)
+        
         self.chat_layout.addWidget(msg_widget, 0, Qt.AlignmentFlag.AlignLeft)

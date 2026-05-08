@@ -19,7 +19,8 @@ class BrowserCrew:
         self._llm = LLM(
             model="deepseek-v4-pro",
             api_key=sumopod_api_key,
-            base_url=sumopod_base_url
+            base_url=sumopod_base_url,
+            max_tokens=4096
         )
 
         # Inisialisasi Browser Tools

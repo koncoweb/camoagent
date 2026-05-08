@@ -1,7 +1,8 @@
 import threading
 import time
+import traceback
 from typing import Optional, Any
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, QMetaObject, Qt, Q_ARG
 
 
 class BrowserManager(QObject):
@@ -15,6 +16,8 @@ class BrowserManager(QObject):
         self._page: Optional[Any] = None
         self._thread: Optional[threading.Thread] = None
         self._running: bool = False
+        self._command_queue = None
+        self._lock = threading.Lock()
 
     def launch_browser(self, headless: bool = False, headful: bool = True):
         if self._browser is not None:
@@ -23,37 +26,68 @@ class BrowserManager(QObject):
         self._thread = threading.Thread(target=self._run_browser, args=(headless, headful), daemon=True)
         self._thread.start()
 
+    def _safe_emit_ready(self):
+        try:
+            QMetaObject.invokeMethod(
+                self, "browser_ready",
+                Qt.ConnectionType.QueuedConnection
+            )
+        except Exception:
+            pass
+
+    def _safe_emit_closed(self):
+        try:
+            QMetaObject.invokeMethod(
+                self, "browser_closed",
+                Qt.ConnectionType.QueuedConnection
+            )
+        except Exception:
+            pass
+
+    def _safe_emit_error(self, error: str):
+        try:
+            QMetaObject.invokeMethod(
+                self, "error_occurred",
+                Qt.ConnectionType.QueuedConnection,
+                Q_ARG(str, error)
+            )
+        except Exception:
+            pass
+
     def _run_browser(self, headless: bool, headful: bool):
         import asyncio
         from queue import Queue, Empty
         
-        # Setup event loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
         try:
             from camoufox.sync_api import Camoufox
             from tools.browser_tool import BrowserConfig
+            import ctypes
 
-            # Gunakan parameter humanize=True agar Camoufox mensimulasikan pergerakan mouse & perilaku manusia
+            user32 = ctypes.windll.user32
+            screen_width = user32.GetSystemMetrics(0)
+            screen_height = user32.GetSystemMetrics(1)
+
             with Camoufox(headless=headless, humanize=True) as browser:
                 self._browser = browser
-                self._page = browser.new_page(viewport={"width": 1280, "height": 800})
+                self._page = browser.new_page(viewport={"width": screen_width, "height": screen_height})
                 self._page.goto("about:blank")
                 self._running = True
 
-                # Setup the command queue in config
                 config = BrowserConfig.get_instance()
                 config.set_page(self._page)
                 command_queue = Queue()
                 config.set_queue(command_queue)
+                
+                with self._lock:
+                    self._command_queue = command_queue
 
-                self.browser_ready.emit()
+                self._safe_emit_ready()
 
-                # Process commands from queue in the browser thread
                 while self._running:
                     try:
-                        # Non-blocking check for commands
                         if not command_queue.empty():
                             command = command_queue.get()
                             action = command.get('action')
@@ -70,12 +104,10 @@ class BrowserManager(QObject):
                                 elif action == "get_content":
                                     result = self._page.content()
                                 elif action == "get_text":
-                                    # Mengambil innerText agar LLM tidak pusing membaca raw HTML (berguna untuk Shopee)
                                     result = self._page.evaluate("document.body.innerText")
                                 elif action == "scroll_down":
-                                    # Scroll halaman untuk men-trigger lazy loading
                                     self._page.evaluate("window.scrollBy(0, window.innerHeight)")
-                                    time.sleep(1.5) # Tunggu lazy load selesai
+                                    time.sleep(1.5)
                                     result = "Successfully scrolled down the page."
                                 elif action == "click":
                                     self._page.click(params.get('selector'))
@@ -83,6 +115,58 @@ class BrowserManager(QObject):
                                 elif action == "type":
                                     self._page.fill(params.get('selector'), params.get('text'))
                                     result = f"Typed into {params.get('selector')}"
+                                elif action == "press_key":
+                                    key = params.get('key')
+                                    self._page.keyboard.press(key)
+                                    result = f"Pressed key: {key}"
+                                elif action == "evaluate_js":
+                                    script = params.get('script')
+                                    js_result = self._page.evaluate(script)
+                                    result = f"JavaScript executed. Result: {js_result}"
+                                elif action == "dismiss_dialog":
+                                    attempts = []
+                                    
+                                    try:
+                                        self._page.keyboard.press("Escape")
+                                        attempts.append("1. Pressed Escape key")
+                                        time.sleep(0.5)
+                                        if "headlessui" not in self._page.content():
+                                            result = "Dialog closed successfully using Escape key!"
+                                        else:
+                                            raise Exception("Dialog still present after Escape")
+                                    except Exception as e:
+                                        attempts.append(f"1. Escape failed: {str(e)}")
+                                    
+                                    try:
+                                        self._page.evaluate("""
+                                            document.querySelectorAll('[data-headlessui-portal]').forEach(el => el.remove());
+                                            document.querySelectorAll('[role="dialog"]').forEach(el => el.remove());
+                                            document.querySelectorAll('.fixed.inset-0').forEach(el => el.remove());
+                                            document.querySelectorAll('.fixed.bottom-0, .fixed.top-0').forEach(el => {
+                                                if (el.querySelector('button')) el.remove();
+                                            });
+                                            document.documentElement.style.overflow = '';
+                                        """)
+                                        attempts.append("2. Removed portal and overlay elements")
+                                        time.sleep(0.3)
+                                    except Exception as e:
+                                        attempts.append(f"2. Portal removal failed: {str(e)}")
+                                    
+                                    try:
+                                        close_buttons = self._page.query_selector_all("button")
+                                        for btn in close_buttons:
+                                            try:
+                                                text = btn.inner_text()
+                                                if "tutup" in text.lower() or "close" in text.lower() or "×" in text:
+                                                    btn.click()
+                                                    attempts.append("3. Clicked close button")
+                                                    break
+                                            except:
+                                                continue
+                                    except Exception as e:
+                                        attempts.append(f"3. Close button click failed: {str(e)}")
+                                    
+                                    result = "Dismiss dialog attempts:\n" + "\n".join(attempts)
                                 
                                 if result_queue:
                                     result_queue.put({"status": "success", "data": result})
@@ -95,12 +179,15 @@ class BrowserManager(QObject):
                         continue
 
         except Exception as e:
-            self.error_occurred.emit(str(e))
+            tb_str = traceback.format_exc()
+            self._safe_emit_error(f"{str(e)}\n\n{traceback.format_exc()}")
         finally:
+            with self._lock:
+                self._command_queue = None
             self._browser = None
             self._page = None
             self._running = False
-            self.browser_closed.emit()
+            self._safe_emit_closed()
 
     def get_page(self) -> Optional[Any]:
         return self._page
