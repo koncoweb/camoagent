@@ -72,7 +72,7 @@ class BrowserManager(QObject):
 
             with Camoufox(headless=headless, humanize=True) as browser:
                 self._browser = browser
-                self._page = browser.new_page(viewport={"width": screen_width, "height": screen_height})
+                self._page = browser.new_page(viewport={"width": 1280, "height": 600})
                 self._page.goto("about:blank")
                 self._running = True
 

@@ -260,6 +260,29 @@ class SettingsPanel(QFrame):
         """)
         llm_layout = QFormLayout()
 
+        provider_label = QLabel("Provider:")
+        provider_label.setStyleSheet("color: #CCC;")
+        self.provider_combo = QComboBox()
+        self.provider_combo.addItems([
+            "SumoPod AI",
+            "Official OpenAI"
+        ])
+        self.provider_combo.setCurrentText("SumoPod AI")
+        self.provider_combo.setStyleSheet("""
+            QComboBox {
+                background-color: #3C3C3C;
+                color: #CCC;
+                border: none;
+                padding: 5px;
+                border-radius: 4px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+        """)
+        self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
+        llm_layout.addRow(provider_label, self.provider_combo)
+
         model_label = QLabel("Model:")
         model_label.setStyleSheet("color: #CCC;")
         self.model_combo = QComboBox()
@@ -335,23 +358,45 @@ class SettingsPanel(QFrame):
         browser_group.setLayout(browser_layout)
         layout.addWidget(browser_group)
 
+        crew_group = QGroupBox("CrewAI Advanced Settings")
+        crew_group.setStyleSheet(llm_group.styleSheet())
+        crew_layout = QFormLayout()
+
+        self.memory_check = QCheckBox("Enable Memory (Requires OpenAI Embeddings)")
+        self.memory_check.setChecked(False)
+        self.memory_check.setStyleSheet(self.headless_check.styleSheet())
+        crew_layout.addRow(self.memory_check)
+
+        self.planning_check = QCheckBox("Enable Planning (Enhances Task Accuracy)")
+        self.planning_check.setChecked(False)
+        self.planning_check.setStyleSheet(self.headless_check.styleSheet())
+        crew_layout.addRow(self.planning_check)
+
+        self.openai_warning = QLabel("⚠️ Memory and Planning are disabled. They require the Official OpenAI provider to use OpenAI Embeddings.")
+        self.openai_warning.setStyleSheet("color: #E5B567; font-size: 11px; font-style: italic;")
+        self.openai_warning.setWordWrap(True)
+        crew_layout.addRow(self.openai_warning)
+        
+        crew_group.setLayout(crew_layout)
+        layout.addWidget(crew_group)
+
         api_group = QGroupBox("API Status")
         api_group.setStyleSheet(llm_group.styleSheet())
         api_layout = QVBoxLayout()
 
         api_row = QHBoxLayout()
-        api_status_label = QLabel("SumoPod AI:")
-        api_status_label.setStyleSheet("color: #888;")
+        self.api_status_label = QLabel("Provider Status:")
+        self.api_status_label.setStyleSheet("color: #888;")
         self.api_status = QLabel("🟢 Connected")
         self.api_status.setStyleSheet("color: #4EC9B0; font-weight: bold;")
-        api_row.addWidget(api_status_label)
+        api_row.addWidget(self.api_status_label)
         api_row.addStretch()
         api_row.addWidget(self.api_status)
         api_layout.addLayout(api_row)
 
-        base_url_label = QLabel("Base URL: ai.sumopod.com/v1")
-        base_url_label.setStyleSheet("color: #666; font-size: 11px;")
-        api_layout.addWidget(base_url_label)
+        self.base_url_label = QLabel("Base URL: ai.sumopod.com/v1")
+        self.base_url_label.setStyleSheet("color: #666; font-size: 11px;")
+        api_layout.addWidget(self.base_url_label)
 
         api_group.setLayout(api_layout)
         layout.addWidget(api_group)
@@ -375,13 +420,37 @@ class SettingsPanel(QFrame):
         layout.addWidget(save_btn)
 
         layout.addStretch()
+        
+        # Initialize provider state
+        self.on_provider_changed(self.provider_combo.currentText())
+
+    def on_provider_changed(self, provider: str):
+        if provider == "SumoPod AI":
+            self.memory_check.setChecked(False)
+            self.planning_check.setChecked(False)
+            self.memory_check.setEnabled(False)
+            self.planning_check.setEnabled(False)
+            self.openai_warning.setVisible(True)
+            if hasattr(self, 'base_url_label'):
+                self.api_status.setText("🟢 SumoPod Active")
+                self.base_url_label.setText("Base URL: ai.sumopod.com/v1")
+        else:
+            self.memory_check.setEnabled(True)
+            self.planning_check.setEnabled(True)
+            self.openai_warning.setVisible(False)
+            if hasattr(self, 'base_url_label'):
+                self.api_status.setText("🟢 OpenAI Active")
+                self.base_url_label.setText("Base URL: api.openai.com/v1")
 
     def on_save(self):
         settings = {
+            "provider": self.provider_combo.currentText(),
             "model": self.model_combo.currentText(),
             "max_iter": self.max_iter_spin.value(),
             "max_time": self.max_time_spin.value(),
             "headless": self.headless_check.isChecked(),
-            "humanize": self.humanize_check.isChecked()
+            "humanize": self.humanize_check.isChecked(),
+            "memory": self.memory_check.isChecked(),
+            "planning": self.planning_check.isChecked()
         }
         self.settings_changed.emit(settings)

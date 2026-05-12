@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added dynamic LLM Provider selection (SumoPod AI vs Official OpenAI) in Settings panel, with safety guardrails that disable unsupported features (Memory, Planning) on third-party providers.
 - Added `PressKeyTool` for keyboard automation (essential for closing modals via 'Escape').
 - Added `EvaluateJSTool` for executing custom JavaScript directly in the browser context.
 - Added `DismissDialogTool` which uses a multi-strategy approach (Escape key, portal removal via JS, button clicking) to close complex Headless UI/React popups.
@@ -20,8 +21,10 @@ All notable changes to this project will be documented in this file.
 - Added functional panel sidebar: **Crew Panel** (agent hierarchy & status), **Analytics Panel** (metrics & task history), **Settings Panel** (LLM & browser config).
 
 ### Changed
+- Changed main application window size to a responsive fixed layout (`800x600`) and browser viewport to `1280x600` for optimal visibility on smaller laptops.
 - Reverted problematic `QTextBrowser` back to `QTextEdit` and built a custom HTML rendering system using the `markdown` package.
 - Chat bubbles now calculate their exact height dynamically using `document().size().height()` to eliminate internal vertical and horizontal scrollbars.
+- Changed user chat bubbles to use `QLabel` with auto-wrap instead of `QTextEdit` to ensure perfectly accurate height calculation without layout overflow.
 - Disabled CrewAI `memory` and `planning` features by default to prevent `/embeddings` 400 errors from SumoPod AI.
 - Updated `BrowserCrew` to utilize dynamic tasks from `tasks.yaml` instead of hardcoded strings.
 - Refactored `browser_tool.py` using `BaseTool` structure based on official CrewAI documentation.

@@ -65,4 +65,5 @@ CamoAgent is a Desktop GUI application built with PyQt6 that integrates a stealt
 - Implemented robust exception handling and thread-safe PyQt6 signal emissions (`QMetaObject.invokeMethod`) to prevent silent crashes
 - Added advanced modal-handling tools (`PressKeyTool`, `EvaluateJSTool`, `DismissDialogTool`) to close stubborn React/Headless UI popups
 - Added `max_tokens=4096` to prevent response truncation
-- Disabled `memory` and `planning` features for SumoPod compatibility
+- Disabled `memory` and `planning` features for SumoPod compatibility, but added UI controls to enable them if using the Official OpenAI provider.
+- Set fixed, responsive window dimensions (800x600) and `QLabel` user chat bubbles for safe rendering on smaller screens without text clipping.

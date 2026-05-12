@@ -68,7 +68,7 @@ class IconBar(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedWidth(80)
+        self.setFixedWidth(70)
         self.setStyleSheet("""
             QFrame {
                 background-color: #1E1E1E;
@@ -79,7 +79,7 @@ class IconBar(QFrame):
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 20, 10, 20)
+        layout.setContentsMargins(5, 20, 5, 20)
         layout.setSpacing(15)
         layout.addAlignment = Qt.AlignmentFlag.AlignTop
 
@@ -105,7 +105,7 @@ class IconBar(QFrame):
 class StatusPanel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedWidth(280)
+        self.setFixedWidth(220)
         self.setStyleSheet("""
             QFrame {
                 background-color: #252526;
@@ -116,7 +116,7 @@ class StatusPanel(QFrame):
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setContentsMargins(10, 15, 10, 15)
 
         title = QLabel("STATUS")
         title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
@@ -155,7 +155,7 @@ class MainWindow(QFrame):
         self.crew_executor = crew_executor
 
         self.setWindowTitle("CamoAgent - Super Agent Browser")
-        self.setMinimumSize(1400, 800)
+        self.setFixedSize(800, 600)
         self.setStyleSheet("background-color: #1E1E1E;")
 
         self.setup_ui()
@@ -215,7 +215,8 @@ class MainWindow(QFrame):
             self.stacked_widget.setCurrentWidget(self.settings_panel)
 
     def on_settings_changed(self, settings: dict):
-        self.status_panel.log_browser_event(f"Settings updated: Model={settings['model']}, MaxIter={settings['max_iter']}")
+        self.crew_executor.update_settings(settings)
+        self.status_panel.log_browser_event(f"Settings updated: Model={settings['model']}, MaxIter={settings['max_iter']}, Memory={settings['memory']}, Planning={settings['planning']}")
 
     def on_chat_message(self, message: str):
         self.chat_widget.add_user_message(message)
@@ -319,35 +320,23 @@ class ChatWidget(QFrame):
             self.message_input.clear()
 
     def add_user_message(self, message: str):
-        msg_widget = QTextEdit()
-        msg_widget.setReadOnly(True)
-        msg_widget.setPlainText(message)
-        msg_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        msg_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        msg_widget.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
-        
+        msg_widget = QLabel(message)
+        msg_widget.setWordWrap(True)
+        msg_widget.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         msg_widget.setStyleSheet("""
-            QTextEdit {
+            QLabel {
                 color: #E0E0E0;
                 background-color: #2D2D30;
-                border: none;
-                border-radius: 15px;
-                padding: 12px 18px;
+                padding: 10px 14px;
+                border-radius: 12px;
                 font-size: 13px;
-                line-height: 1.5;
-                margin-left: 50px;
-                margin-top: 8px;
-                margin-bottom: 8px;
+                margin-left: 20px;
+                margin-top: 6px;
+                margin-bottom: 6px;
             }
         """)
-        
-        # Calculate height based on content
-        doc = msg_widget.document()
-        doc.setTextWidth(400) # Fixed width for height calculation
-        height = int(doc.size().height()) + 25
-        msg_widget.setFixedHeight(height)
-        msg_widget.setFixedWidth(450)
-        
+        # Set max width to prevent it from stretching across the entire screen
+        msg_widget.setMaximumWidth(380)
         self.chat_layout.addWidget(msg_widget, 0, Qt.AlignmentFlag.AlignRight)
 
     def add_agent_message(self, message: str):
@@ -457,17 +446,17 @@ class ChatWidget(QFrame):
                 background-color: #2D2D30;
                 border: none;
                 border-radius: 12px;
-                margin-right: 30px;
-                margin-top: 8px;
-                margin-bottom: 8px;
+                margin-right: 15px;
+                margin-top: 6px;
+                margin-bottom: 6px;
             }
         """)
         
         # Calculate height based on content
         doc = msg_widget.document()
-        doc.setTextWidth(600) # Fixed width for height calculation
-        height = int(doc.size().height()) + 30
+        doc.setTextWidth(420) # Fixed width for height calculation
+        height = int(doc.size().height()) + 25
         msg_widget.setFixedHeight(height)
-        msg_widget.setFixedWidth(650)
+        msg_widget.setFixedWidth(440)
         
         self.chat_layout.addWidget(msg_widget, 0, Qt.AlignmentFlag.AlignLeft)

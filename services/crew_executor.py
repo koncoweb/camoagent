@@ -17,6 +17,17 @@ class CrewExecutor(QObject):
         self._running = False
         self._active_threads = []
         self._lock = threading.Lock()
+        self.crew_settings = {
+            "provider": "SumoPod AI",
+            "memory": False,
+            "planning": False,
+            "model": "deepseek-v4-pro",
+            "max_iter": 10
+        }
+
+    def update_settings(self, settings: dict):
+        with self._lock:
+            self.crew_settings.update(settings)
 
     def set_page(self, page):
         self._config.set_page(page)
@@ -54,13 +65,20 @@ class CrewExecutor(QObject):
             try:
                 with self._lock:
                     self._active_threads.append(thread_id)
+                    current_settings = self.crew_settings.copy()
 
                 from crews.browser_crew import BrowserCrew
 
                 self._safe_emit_status("Crew", "working")
                 self._safe_emit_message("Starting task execution...")
 
-                crew_instance = BrowserCrew()
+                crew_instance = BrowserCrew(
+                    provider=current_settings.get("provider", "SumoPod AI"),
+                    memory=current_settings.get("memory", False),
+                    planning=current_settings.get("planning", False),
+                    model=current_settings.get("model", "deepseek-v4-pro"),
+                    max_iter=current_settings.get("max_iter", 10)
+                )
                 crew = crew_instance.get_crew()
 
                 result = crew.kickoff(inputs={"task": task_description})

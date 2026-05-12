@@ -11,15 +11,22 @@ class BrowserCrew:
     agents_config = '../config/agents.yaml'
     tasks_config = '../config/tasks.yaml'
 
-    def __init__(self):
-        # Inisialisasi LLM SumoPod AI dengan DeepSeek V4 Pro
-        sumopod_api_key = os.environ.get("SUMOPOD_API_KEY")
-        sumopod_base_url = os.environ.get("SUMOPOD_BASE_URL", "https://ai.sumopod.com/v1")
+    def __init__(self, provider="SumoPod AI", memory=False, planning=False, model="deepseek-v4-pro", max_iter=10):
+        self.memory = memory
+        self.planning = planning
+        self.max_iter = max_iter
+
+        if provider == "Official OpenAI":
+            api_key = os.environ.get("OPENAI_API_KEY")
+            base_url = None # Default official OpenAI url
+        else:
+            api_key = os.environ.get("SUMOPOD_API_KEY")
+            base_url = os.environ.get("SUMOPOD_BASE_URL", "https://ai.sumopod.com/v1")
 
         self._llm = LLM(
-            model="deepseek-v4-pro",
-            api_key=sumopod_api_key,
-            base_url=sumopod_base_url,
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
             max_tokens=4096
         )
 
@@ -34,7 +41,7 @@ class BrowserCrew:
             llm=self._llm,
             verbose=True,
             allow_delegation=True,
-            max_iter=10, # Batasi iterasi agar tidak hang
+            max_iter=self.max_iter, # Batasi iterasi agar tidak hang
             max_execution_time=120 # Timeout 2 menit
         )
 
@@ -46,7 +53,7 @@ class BrowserCrew:
             llm=self._llm,
             verbose=True,
             allow_delegation=True,
-            max_iter=10,
+            max_iter=self.max_iter,
             max_execution_time=120
         )
 
@@ -57,7 +64,7 @@ class BrowserCrew:
             llm=self._llm,
             verbose=True,
             allow_delegation=False,
-            max_iter=5
+            max_iter=self.max_iter
         )
 
     @task
@@ -74,8 +81,8 @@ class BrowserCrew:
             tasks=self.tasks,    # Otomatis diambil dari @task
             process=Process.hierarchical,
             manager_llm=self._llm,
-            memory=False, # Disable memory untuk mencegah error embedding dari OpenAI default
-            planning=False, # Disable planning karena juga dapat memicu pencarian model embedding
+            memory=self.memory, 
+            planning=self.planning, 
             verbose=True
         )
 
