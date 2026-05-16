@@ -2,116 +2,220 @@
 
 A powerful desktop application that combines CrewAI multi-agent system with Camoufox browser for intelligent Shopee store management.
 
-## Features
+![ShopeeAgent](https://img.shields.io/badge/Version-1.0.0-EE4D2D?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-- 🛒 **Shopee Browser Integration** - Headful browser with stealth fingerprinting for Shopee
-- 🤖 **Multi-Agent CrewAI System** - Navigator, Scraper, Analyst, and Reporter agents
-- 💬 **Chat Interface** - Natural language commands for Shopee automation
-- 📊 **Analytics Dashboard** - Track Shopee store performance and metrics
-- 🧡 **Shopee-Themed UI** - Beautiful orange and white design matching Shopee branding
+## 🎯 Features
 
-## Requirements
+### 🛒 Shopee Browser Integration
+- **Camoufox** stealth browser with anti-bot evasion
+- Human-like mouse movements with `humanize=True`
+- Session persistence - no re-login required
+- Fixed 1280x760 viewport for optimal viewing
+- Auto-navigate to Shopee Seller Center
 
-- Windows 10/11
-- Internet connection (for first run - downloads Camoufox browser)
-- OpenAI API key (for CrewAI agents)
+### 📊 Shopee Ads Management
+- **AI-Powered Analysis** with 3 specialized agents
+- Financial calculations: ROAS, Break-Even, Max CPC, Net Profit
+- Performance classification: Bagus / Cukup / Rugi
+- Bid optimization recommendations
+- Sequential CrewAI workflow
 
-## Installation
+### 🤖 AI Agents
+| Agent | Role | Function |
+|-------|------|----------|
+| 🛒 Navigator | Shopee Dashboard Navigator | Extract data from Shopee pages |
+| 📊 Financial Analyst | E-commerce Financial Analyst | Calculate ROAS, Break-Even, Max CPC |
+| 🎯 Ads Optimizer | PPC Strategist | Generate bid recommendations |
 
-### Option 1: Using Pre-built Executable
+### 🛠️ Custom Tools
+| Tool | Function |
+|------|----------|
+| `GetCurrentPageInfoTool` | Get current URL and title |
+| `NavigateToUrlTool` | Navigate to specific URL |
+| `GetPageTextTool` | Get clean innerText |
+| `ScrollDownTool` | Scroll for lazy-loaded content |
+| `ClickElementTool` | Click element by CSS selector |
+| `PressKeyTool` | Send keyboard keys |
+| `DismissDialogTool` | Close modals/popups |
+| `SaveSessionTool` | Save browser session |
 
-1. Download the latest `ShopeeAgent.exe` from releases
-2. Copy `.env` file to the same directory as the executable
-3. Edit `.env` and add your `OPENAI_API_KEY`
-4. Run `ShopeeAgent.exe`
+### 🎨 Shopee-Themed UI
+- Orange (#EE4D2D) and white color scheme
+- Chat interface with Markdown rendering
+- Real-time status panel
+- Crew configuration panel
+- Analytics dashboard
+- Settings with API key management
 
-### Option 2: Building from Source
+## 📥 Installation
 
-1. Ensure you have Python 3.10+ installed
-2. Clone or download this repository
-3. Create a `.env` file based on `.env.example`:
-   ```
-   OPENAI_API_KEY=your_openai_api_key_here
-   ```
-4. Run `build.bat` or execute these commands:
-   ```batch
-   pip install -r requirements.txt
-   pip install pyinstaller
-   pyinstaller camoagent.spec --clean
-   ```
+### Option 1: NSIS Installer (Recommended)
+```
+1. Download ShopeeAgent-Setup.exe
+2. Run the installer
+3. Launch from Desktop or Start Menu
+```
 
-## Usage
+### Option 2: Portable Version
+```
+1. Download ShopeeAgent-Portable.zip
+2. Extract to any folder
+3. Run ShopeeAgent.exe
+```
 
-1. **Launch Browser** - Click the 🛒 icon to open Shopee browser
-2. **Navigate Manually** - Use the browser as normal (login, navigate to Shopee)
-3. **Send Commands** - Type commands in the chat box, e.g.:
-   - "Go to Shopee Seller Center and check my orders"
-   - "Analyze my product listings and suggest improvements"
-   - "Calculate ROI for my Shopee ads campaign"
-4. **View Results** - Agents work collaboratively and return results in the chat
+### Option 3: Build from Source
 
-## Architecture
+```batch
+# Clone repository
+git clone <repo-url>
+cd camoagent
+
+# Create .env file
+echo SUMOPOD_API_KEY=your_api_key > .env
+
+# Run build script
+build.bat
+```
+
+## 🚀 Usage
+
+### First Time Setup
+1. Launch ShopeeAgent
+2. Click 🛒 to open browser
+3. Login to Shopee Seller Center (manual)
+4. Session will be saved automatically
+
+### Running Analysis
+1. Navigate to Shopee Ads dashboard in browser
+2. Click 📢 icon to start analysis
+3. View results in chat panel
+
+### Settings
+- **Provider**: SumoPod AI (default) or OpenAI
+- **Model**: Select from available models
+- **API Keys**: Enter your keys directly in Settings
+
+## 🏗️ Architecture
 
 ```
 ShopeeAgent
 ├── UI Layer (PyQt6)
-│   ├── Icon Bar - Navigation icons (Shopee-themed)
-│   ├── Chat Widget - Command input and AI responses
-│   └── Status Panel - Logs and agent activity
+│   ├── Icon Bar - Navigation (Browser, Ads, Crew, Settings)
+│   ├── Chat Widget - Command input & AI responses
+│   ├── Status Panel - Real-time logs
+│   └── Settings Panel - Configuration
+│
 ├── Service Layer
-│   ├── BrowserManager - Camoufox lifecycle management
-│   └── CrewExecutor - CrewAI task execution
+│   ├── BrowserManager - Camoufox lifecycle
+│   └── CrewExecutor - CrewAI execution
+│
 ├── Agent Layer (CrewAI)
-│   ├── Navigator Agent - Shopee web navigation
-│   ├── Scraper Agent - Data extraction from pages
-│   ├── Analyst Agent - Data analysis and calculations
-│   └── Reporter Agent - Results formatting
+│   ├── ShopeeNavigator - Data extraction
+│   ├── FinancialAnalyst - Financial calculations
+│   └── AdsOptimizer - Recommendations
+│
 └── Tools Layer
-    └── BrowserTool - Custom CrewAI tool for browser control
+    └── Custom Browser Tools
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 shopeeagent/
-├── camoagent.py          # Main entry point
-├── requirements.txt      # Python dependencies
-├── camoagent.spec        # PyInstaller specification
-├── build.bat            # Build script for Windows
+├── camoagent.py           # Main entry point
+├── camoagent.spec        # PyInstaller spec
+├── build.bat            # Build script
+├── requirements.txt     # Dependencies
 │
-├── config/               # Configuration files
-│   ├── agents.yaml       # Agent definitions
-│   └── tasks.yaml       # Task definitions
+├── config/              # Configuration
+│   ├── agents.yaml
+│   ├── tasks.yaml
+│   ├── shopee_agents.yaml
+│   └── shopee_tasks.yaml
 │
-├── crews/                # CrewAI crew definitions
-│   └── browser_crew.py  # Multi-agent crew
+├── crews/               # CrewAI crews
+│   ├── browser_crew.py
+│   └── shopee_crew.py
 │
-├── tools/                # Custom CrewAI tools
-│   └── browser_tool.py  # Browser control tool
+├── tools/               # Custom tools
+│   ├── browser_tool.py
+│   └── shopee_tools.py
 │
-├── services/             # Application services
-│   ├── browser_manager.py  # Browser lifecycle
-│   └── crew_executor.py    # Crew execution
+├── services/            # Application services
+│   ├── browser_manager.py
+│   └── crew_executor.py
 │
-└── ui/                  # PyQt6 UI components
-    └── main_window.py   # Main window layout
+├── ui/                  # PyQt6 UI
+│   ├── main_window.py
+│   └── panels.py
+│
+└── docs/               # Documentation
+    └── INSTALLER_GUIDE.md
 ```
 
-## Troubleshooting
+## 🔧 Configuration
+
+### Environment Variables (.env)
+```env
+SUMOPOD_API_KEY=your_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### Available Models
+
+**SumoPod AI:**
+- `MiniMax-M2.7-highspeed` (default)
+- `deepseek-v4-pro`
+- `MiniMax-Text-01`
+- `abab6.5s-chat`
+- `abab6.5g-chat`
+
+**OpenAI:**
+- `gpt-4o`
+- `gpt-4o-mini`
+- `gpt-4-turbo`
+
+## 📊 Financial Calculations
+
+| Metric | Formula |
+|--------|---------|
+| Actual Cost | Shopee Cost × 1.11 (PPN 11%) |
+| Actual ROAS | GMV / Actual Cost |
+| Net Profit | Selling Price - HPP - Admin Fee - Operational |
+| Break-Even ROAS | Selling Price / Net Profit |
+| Max CPC | Net Profit × Conversion Rate |
+
+### Performance Classification
+- **🎯 Bagus**: ROAS > 5.0 (Target)
+- **⏸️ Cukup**: Break-Even < ROAS < 5.0
+- **🛑 Rugi**: ROAS < Break-Even
+
+## 🐛 Troubleshooting
 
 ### Browser won't launch
-- Ensure Camoufox is installed: `pip install camoufox`
-- Try running as administrator
+```bash
+# Re-fetch Camoufox
+python -m camoufox fetch
+```
 
-### Agents don't respond
-- Check your `OPENAI_API_KEY` is valid
-- Ensure internet connection
+### API errors
+- Check API key in Settings panel
+- Ensure sufficient credits in SumoPod/OpenAI
 
 ### Build fails
-- Ensure Python 3.10+ is installed
-- Update pip: `python -m pip install --upgrade pip`
-- Install Visual Studio Build Tools (for Windows)
+```bash
+# Update dependencies
+pip install --upgrade -r requirements.txt
+```
 
-## License
+## 📄 License
 
-MIT License
+MIT License - see [LICENSE.txt](LICENSE.txt)
+
+## 🙏 Acknowledgments
+
+- [CrewAI](https://crewai.com/) - Multi-agent framework
+- [Camoufox](https://camoufox.com/) - Stealth browser
+- [PyQt6](https://riverbankcomputing.com/software/pyqt/) - Desktop UI

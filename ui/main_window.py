@@ -81,12 +81,16 @@ class IconBar(QFrame):
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 20, 5, 20)
-        layout.setSpacing(15)
+        layout.setSpacing(12)
         layout.addAlignment = Qt.AlignmentFlag.AlignTop
 
         self.browser_btn = EmojiButton("🛒", "Shopee Browser", self)
         self.browser_btn.clicked.connect(lambda: self.icon_clicked.emit("browser"))
         layout.addWidget(self.browser_btn)
+
+        self.ads_btn = EmojiButton("📢", "Shopee Ads", self)
+        self.ads_btn.clicked.connect(lambda: self.icon_clicked.emit("ads"))
+        layout.addWidget(self.ads_btn)
 
         self.crew_btn = EmojiButton("🤖", "AI Crew", self)
         self.crew_btn.clicked.connect(lambda: self.icon_clicked.emit("crew"))
@@ -206,8 +210,20 @@ class MainWindow(QFrame):
     def on_icon_clicked(self, icon_name: str):
         if icon_name == "browser":
             self.browser_manager.launch_browser()
-            self.status_panel.log_browser_event("Launching Shopee Browser...")
+            self.status_panel.log_browser_event("Launching Shopee Seller Center...")
             self.stacked_widget.setCurrentWidget(self.chat_widget)
+        elif icon_name == "ads":
+            if not self.browser_manager.is_ready():
+                self.status_panel.log_browser_event("⚠️ Please open the browser first by clicking 🛒 icon")
+                self.chat_widget.add_user_message("⚠️ Please open the browser first by clicking the 🛒 icon, then navigate to Shopee Ads dashboard manually.")
+                return
+            self.status_panel.log_browser_event("🔍 Starting Shopee Ads Analysis... (Make sure you're on the Shopee Ads page)")
+            self.stacked_widget.setCurrentWidget(self.chat_widget)
+            self.chat_widget.add_user_message("🔍 **Starting Shopee Ads Analysis...**\n\nPlease make sure you're on the Shopee Ads dashboard page.\n\nThe AI will extract data from the current page.")
+            self.crew_executor.execute_shopee_ads_task(
+                task_description="Analyze Shopee ads performance on the current page and provide optimization recommendations",
+                page=self.browser_manager.get_page()
+            )
         elif icon_name == "crew":
             self.status_panel.log_browser_event("AI Crew Configuration opened")
             self.stacked_widget.setCurrentWidget(self.crew_panel)

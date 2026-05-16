@@ -1,0 +1,88 @@
+extract_ads_task:
+  description: |
+    Extract all advertising metrics from the current Shopee ads page.
+    
+    IMPORTANT: The user should manually navigate to the Shopee Ads dashboard first before clicking the analysis button.
+    
+    Steps:
+    1. Use get_current_page_info to verify current page
+    2. Use get_page_text to read the visible text on the ads dashboard
+    3. Use scroll_down to load all campaign data if needed
+    4. Use evaluate_js to extract table data if possible
+    5. Parse and clean the data into JSON format
+    
+    Required JSON fields for each product:
+    - product_name: Nama produk
+    - shopee_cost: Biaya iklan Shopee
+    - gmv: Gross Merchandise Value / Omset penjualan
+    - clicks: Jumlah klik iklan
+    - cr: Conversion Rate (dalam decimal, bukan persen)
+    - selling_price: Harga jual produk
+    
+    Return the complete JSON array of all products.
+  expected_output: |
+    A clean JSON array containing all product advertising metrics with these fields:
+    product_name, shopee_cost, gmv, clicks, cr, selling_price
+    
+    Example format:
+    [
+      {
+        "product_name": "Produk A",
+        "shopee_cost": 150000,
+        "gmv": 850000,
+        "clicks": 45,
+        "cr": 0.067,
+        "selling_price": 50000
+      }
+    ]
+
+calculate_financials_task:
+  description: |
+    Calculate actual financial metrics for Shopee ads products.
+    
+    Use the CalculateActualFinancialsTool with the raw JSON data from the previous task.
+    
+    Default parameters:
+    - hpp_percentage: 0.7 (70% of selling price)
+    - operational_cost: 0
+    - admin_fee_percentage: 0.023 (2.3% Shopee admin fee)
+    
+    The tool will calculate:
+    - actual_cost: Shopee Cost * 1.11 (with 11% VAT)
+    - actual_roas: GMV / Actual Cost
+    - net_profit: Selling Price - HPP - Admin Fee - Operational Cost
+    - break_even_roas: Selling Price / Net Profit
+    - max_cpc: Net Profit * CR
+    - status: "Bagus", "Cukup", or "Rugi" based on ROAS analysis
+    
+  expected_output: |
+    Enriched JSON with all calculated fields plus summary statistics:
+    - All original fields preserved
+    - actual_cost, actual_roas, net_profit, break_even_roas, max_cpc added
+    - status field added (Bagus/Cukup/Rugi)
+    - summary with totals and averages included
+
+generate_recommendations_task:
+  description: |
+    Generate actionable bid optimization recommendations for Shopee ads.
+    
+    Use the GenerateAdsRecommendationTool with the financial data JSON.
+    
+    For each product:
+    - If status = "Rugi" → Action: "Turunkan Bid ke Max CPC atau Pause"
+    - If status = "Cukup" → Action: "Pertahankan Bid saat ini"
+    - If status = "Bagus" → Action: "Naikkan Bid 5% untuk ekspansi"
+    
+    Generate a beautiful markdown report with:
+    1. Summary section with totals and averages
+    2. Performance distribution (Bagus/Cukup/Rugi counts)
+    3. Detailed recommendations table
+  expected_output: |
+    A well-formatted Markdown report containing:
+    - Summary statistics table
+    - Performance distribution table
+    - Detailed recommendations table with:
+      - Product name
+      - Status (with emoji indicators)
+      - Max CPC
+      - Recommended action

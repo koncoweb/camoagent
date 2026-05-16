@@ -11,16 +11,16 @@ class BrowserCrew:
     agents_config = '../config/agents.yaml'
     tasks_config = '../config/tasks.yaml'
 
-    def __init__(self, provider="SumoPod AI", memory=False, planning=False, model="deepseek-v4-pro", max_iter=10):
+    def __init__(self, provider="SumoPod AI", memory=False, planning=False, model="deepseek-v4-pro", max_iter=10, sumpod_api_key=None, openai_api_key=None):
         self.memory = memory
         self.planning = planning
         self.max_iter = max_iter
 
         if provider == "Official OpenAI":
-            api_key = os.environ.get("OPENAI_API_KEY")
-            base_url = None # Default official OpenAI url
+            api_key = openai_api_key if openai_api_key else os.environ.get("OPENAI_API_KEY")
+            base_url = None
         else:
-            api_key = os.environ.get("SUMOPOD_API_KEY")
+            api_key = sumpod_api_key if sumpod_api_key else os.environ.get("SUMOPOD_API_KEY")
             base_url = os.environ.get("SUMOPOD_BASE_URL", "https://ai.sumopod.com/v1")
 
         self._llm = LLM(

@@ -176,6 +176,18 @@ class DismissDialogTool(BaseTool):
         return BrowserConfig.get_instance().execute_command("dismiss_dialog", {})
 
 
+class SaveSessionToolInput(BaseModel):
+    pass
+
+class SaveSessionTool(BaseTool):
+    name: str = "save_session"
+    description: str = "Save the current browser session (cookies, local storage) to a file. Use this after logging into Shopee Seller Center to avoid re-login on next run. CRITICAL: Always save session after manual login to prevent OTP blocks."
+    args_schema: Type[BaseModel] = SaveSessionToolInput
+
+    def _run(self, **kwargs) -> str:
+        return BrowserConfig.get_instance().execute_command("save_session", {})
+
+
 def get_all_tools():
     return [
         GetCurrentPageInfoTool(),
@@ -188,4 +200,5 @@ def get_all_tools():
         PressKeyTool(),
         EvaluateJSTool(),
         DismissDialogTool(),
+        SaveSessionTool(),
     ]

@@ -1,6 +1,7 @@
 import threading
 import time
 import traceback
+import os
 from typing import Optional, Any
 from PyQt6.QtCore import QObject, pyqtSignal, QMetaObject, Qt, Q_ARG
 
@@ -9,6 +10,7 @@ class BrowserManager(QObject):
     browser_ready = pyqtSignal()
     browser_closed = pyqtSignal()
     error_occurred = pyqtSignal(str)
+    session_saved = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -18,13 +20,33 @@ class BrowserManager(QObject):
         self._running: bool = False
         self._command_queue = None
         self._lock = threading.Lock()
+        self._session_file = os.path.join(os.path.dirname(__file__), "..", ".shopee_session")
+
+    def get_session_path(self) -> str:
+        return os.path.abspath(self._session_file)
 
     def launch_browser(self, headless: bool = False, headful: bool = True):
-        if self._browser is not None:
-            return
+        with self._lock:
+            if self._browser is not None and self._page is not None:
+                return
+            if self._thread is not None and self._thread.is_alive():
+                return
+            
+            self._thread = threading.Thread(target=self._run_browser, args=(headless, headful), daemon=True)
+            self._thread.start()
 
-        self._thread = threading.Thread(target=self._run_browser, args=(headless, headful), daemon=True)
-        self._thread.start()
+    def save_session(self):
+        if self._page is None:
+            return False
+        
+        try:
+            session_path = self.get_session_path()
+            self._page.context.storage_state(path=session_path)
+            self._safe_emit_ready()
+            return True
+        except Exception as e:
+            self._safe_emit_error(f"Failed to save session: {str(e)}")
+            return False
 
     def _safe_emit_ready(self):
         try:
@@ -68,12 +90,25 @@ class BrowserManager(QObject):
 
             user32 = ctypes.windll.user32
             screen_width = user32.GetSystemMetrics(0)
-            screen_height = user32.GetSystemMetrics(1)
+            screen_height = ctypes.windll.user32.GetSystemMetrics(1)
 
-            with Camoufox(headless=headless, humanize=True, window=(1280, 760)) as browser:
+            session_path = self.get_session_path()
+            has_session = os.path.exists(session_path)
+
+            browser_options = {
+                "headless": headless,
+                "humanize": True,
+                "window": (1280, 760)
+            }
+            
+            if has_session:
+                browser_options["storage_state"] = session_path
+            
+            with Camoufox(**browser_options) as browser:
                 self._browser = browser
+                
                 self._page = browser.new_page(viewport={"width": 1280, "height": 760})
-                self._page.goto("about:blank")
+                self._page.goto("https://seller.shopee.co.id")
                 self._running = True
 
                 config = BrowserConfig.get_instance()
@@ -167,6 +202,13 @@ class BrowserManager(QObject):
                                         attempts.append(f"3. Close button click failed: {str(e)}")
                                     
                                     result = "Dismiss dialog attempts:\n" + "\n".join(attempts)
+                                elif action == "save_session":
+                                    try:
+                                        session_path = self.get_session_path()
+                                        self._page.context.storage_state(path=session_path)
+                                        result = f"Session saved successfully to {session_path}"
+                                    except Exception as e:
+                                        result = f"Failed to save session: {str(e)}"
                                 
                                 if result_queue:
                                     result_queue.put({"status": "success", "data": result})
@@ -196,9 +238,11 @@ class BrowserManager(QObject):
         return self._page is not None
 
     def close(self):
-        self._running = False
-        if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=2)
+        with self._lock:
+            self._running = False
+            if self._thread and self._thread.is_alive():
+                self._thread.join(timeout=2)
             
-        self._browser = None
-        self._page = None
+            self._browser = None
+            self._page = None
+            self._command_queue = None
