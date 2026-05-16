@@ -2,11 +2,12 @@
 ; Build with: makensis installer.nsi
 
 !include "MUI2.nsh"
+!include "FileFunc.nsh"
 
 ; General Settings
 Name "ShopeeAgent"
 OutFile "ShopeeAgent-Setup.exe"
-InstallDir "$PROGRAMFILES\ShopeeAgent"
+InstallDir "$PROGRAMFILES64\ShopeeAgent"
 InstallDirRegKey HKLM "Software\ShopeeAgent" "Install_Dir"
 RequestExecutionLevel admin
 
@@ -46,10 +47,22 @@ Section "Install"
     File /r "dist\ShopeeAgent\*.*"
     
     ; Create .env file with template
-    FileOpen $0 "$INSTDIR\.env.example" w
+    FileOpen $0 "$INSTDIR\.env" w
     FileWrite $0 "SUMOPOD_API_KEY=your_api_key_here$\r$\n"
     FileWrite $0 "OPENAI_API_KEY=your_openai_api_key_here$\r$\n"
+    FileWrite $0 "OPENAI_BASE_URL=https://ai.sumopod.com/v1$\r$\n"
     FileClose $0
+    
+    ; Create README for first-time users
+    FileOpen $1 "$INSTDIR\README_FIRST.txt" w
+    FileWrite $1 "=== SHOPEAGENT SETUP COMPLETE ===$\r$\n$\r$\n"
+    FileWrite $1 "1. Edit .env file in this folder and add your API key:$\r$\n"
+    FileWrite $1 "   SUMOPOD_API_KEY=your_key_here$\r$\n$\r$\n"
+    FileWrite $1 "2. First run will download Camoufox browser (requires internet)$\r$\n$\r$\n"
+    FileWrite $1 "3. If app doesn't start, run this command:$\r$\n"
+    FileWrite $1 "   python -m camoufox fetch$\r$\n$\r$\n"
+    FileWrite $1 "4. Check ShopeeAgent.log for error logs$\r$\n"
+    FileClose $1
     
     ; Create uninstaller
     WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -70,8 +83,18 @@ Section "Install"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ShopeeAgent" "DisplayVersion" "1.0.0"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ShopeeAgent" "DisplayIcon" "$INSTDIR\ShopeeAgent.exe"
     
+    ; Get installed size
+    ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+    IntFmt $0 "0x%08X" $0
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ShopeeAgent" "EstimatedSize" "$0"
+    
     ; Write install directory
     WriteRegStr HKLM "Software\ShopeeAgent" "Install_Dir" "$INSTDIR"
+    
+    ; Ask user if they want to open the README
+    MessageBox MB_YESNO "Instalasi selesai!$\n$\nBuka file panduan penggunaan (README)?" IDNO skip_readme
+        Exec '"$INSTDIR\ShopeeAgent-Setup-README.txt"'
+    skip_readme:
 SectionEnd
 
 ; Uninstaller Section

@@ -1,43 +1,135 @@
 import sys
-import asyncio
-import threading
+import os
+import traceback
+import logging
 from pathlib import Path
-from dotenv import load_dotenv
 
-load_dotenv()
+# Setup logging first - use writable location
+import tempfile
+import appdirs
 
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QThread, pyqtSignal, QTimer
-from PyQt6.QtGui import QIcon
+# Try multiple locations for log file
+log_locations = [
+    Path(tempfile.gettempdir()) / "ShopeeAgent.log",
+    Path(appdirs.user_data_dir("ShopeeAgent")) / "ShopeeAgent.log",
+    Path.home() / "ShopeeAgent.log",
+]
 
-from ui.main_window import MainWindow
-from services.browser_manager import BrowserManager
-from services.crew_executor import CrewExecutor
+log_file = None
+for loc in log_locations:
+    try:
+        loc.parent.mkdir(parents=True, exist_ok=True)
+        loc.touch(exist_ok=True)
+        if loc.exists() and os.access(loc, os.W_OK):
+            log_file = loc
+            break
+    except:
+        continue
 
+if log_file is None:
+    log_file = Path(tempfile.gettempdir()) / "ShopeeAgent.log"
 
-class ShopeeAgentApp(QApplication):
-    def __init__(self, argv):
-        super().__init__(argv)
-        self.setApplicationName("ShopeeAgent")
-        self.setApplicationVersion("0.1.0")
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file, encoding='utf-8'),
+        logging.StreamHandler(sys.stderr)
+    ]
+)
+logger = logging.getLogger("ShopeeAgent")
 
-        self.browser_manager = BrowserManager()
-        self.crew_executor = CrewExecutor()
+def exception_hook(exc_type, exc_value, exc_traceback):
+    """Handle uncaught exceptions"""
+    error_msg = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    logger.critical(f"Uncaught exception: {error_msg}")
+    print(f"ERROR: {exc_type.__name__}: {exc_value}", file=sys.stderr)
+    print(f"Check {log_file} for details", file=sys.stderr)
 
-        self.main_window = MainWindow(
-            browser_manager=self.browser_manager,
-            crew_executor=self.crew_executor
+sys.excepthook = exception_hook
+
+logger.info("=" * 50)
+logger.info("ShopeeAgent starting...")
+logger.info(f"Python: {sys.version}")
+logger.info(f"Executable: {sys.executable}")
+logger.info(f"CWD: {os.getcwd()}")
+logger.info("=" * 50)
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    logger.info("Environment loaded")
+
+    from PyQt6.QtWidgets import QApplication, QMessageBox
+    from PyQt6.QtCore import Qt
+    logger.info("PyQt6 imported successfully")
+
+    from ui.main_window import MainWindow
+    from services.browser_manager import BrowserManager
+    from services.crew_executor import CrewExecutor
+    logger.info("All modules imported successfully")
+
+    class ShopeeAgentApp(QApplication):
+        def __init__(self, argv):
+            super().__init__(argv)
+            self.setApplicationName("ShopeeAgent")
+            self.setApplicationVersion("1.0.0")
+            
+            logger.info("Initializing ShopeeAgentApp...")
+            
+            try:
+                self.browser_manager = BrowserManager()
+                logger.info("BrowserManager initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize BrowserManager: {e}")
+                raise
+            
+            try:
+                self.crew_executor = CrewExecutor()
+                logger.info("CrewExecutor initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize CrewExecutor: {e}")
+                raise
+            
+            try:
+                self.main_window = MainWindow(
+                    browser_manager=self.browser_manager,
+                    crew_executor=self.crew_executor
+                )
+                logger.info("MainWindow initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize MainWindow: {e}")
+                raise
+
+        def run(self):
+            logger.info("Showing main window...")
+            self.main_window.show()
+            logger.info("Application ready!")
+            sys.exit(self.exec())
+
+    def main():
+        logger.info("Creating ShopeeAgentApp instance...")
+        app = ShopeeAgentApp(sys.argv)
+        app.run()
+
+    if __name__ == "__main__":
+        main()
+
+except Exception as e:
+    logger.critical(f"Startup failed: {e}")
+    logger.critical(traceback.format_exc())
+    
+    # Show error dialog if possible
+    try:
+        from PyQt6.QtWidgets import QApplication, QMessageBox
+        app = QApplication(sys.argv)
+        QMessageBox.critical(
+            None,
+            "ShopeeAgent Error",
+            f"Failed to start ShopeeAgent:\n\n{e}\n\nCheck ShopeeAgent.log for details."
         )
-
-    def run(self):
-        self.main_window.show()
-        sys.exit(self.exec())
-
-
-def main():
-    app = ShopeeAgentApp(sys.argv)
-    app.run()
-
-
-if __name__ == "__main__":
-    main()
+    except:
+        pass
+    
+    input("Press Enter to exit...")
+    sys.exit(1)
