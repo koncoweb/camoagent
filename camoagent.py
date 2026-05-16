@@ -15,10 +15,10 @@ from services.browser_manager import BrowserManager
 from services.crew_executor import CrewExecutor
 
 
-class CamoAgentApp(QApplication):
+class ShopeeAgentApp(QApplication):
     def __init__(self, argv):
         super().__init__(argv)
-        self.setApplicationName("CamoAgent")
+        self.setApplicationName("ShopeeAgent")
         self.setApplicationVersion("0.1.0")
 
         self.browser_manager = BrowserManager()
@@ -35,7 +35,7 @@ class CamoAgentApp(QApplication):
 
 
 def main():
-    app = CamoAgentApp(sys.argv)
+    app = ShopeeAgentApp(sys.argv)
     app.run()
 
 

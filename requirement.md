@@ -1,7 +1,7 @@
-# Project Requirements: CamoAgent
+# Project Requirements: ShopeeAgent
 
 ## Overview
-CamoAgent is a Desktop GUI application built with PyQt6 that integrates a stealth browser (Camoufox/Playwright) with a multi-agent AI system (CrewAI). It acts as an automated web assistant that can navigate, scrape, and analyze web data safely without being easily detected as a bot.
+ShopeeAgent is a Desktop GUI application built with PyQt6 that integrates a stealth browser (Camoufox/Playwright) with a multi-agent AI system (CrewAI) specifically designed for Shopee store management. It acts as an automated web assistant that can navigate, scrape, and analyze Shopee data safely without being easily detected as a bot.
 
 ## Core Dependencies
 - **PyQt6**: For the desktop graphical user interface.
@@ -12,11 +12,11 @@ CamoAgent is a Desktop GUI application built with PyQt6 that integrates a stealt
 
 ## Core Features
 
-### 1. Stealth Browser Automation
+### 1. Shopee Browser Automation
 - **Camoufox** with `humanize=True` for human-like mouse movements
 - **BrowserForge fingerprinting** for anti-detect capabilities
 - **Thread-safe Command Queue** pattern for cross-thread communication
-- Supports e-commerce sites like Shopee with lazy-loading detection
+- Optimized for Shopee with lazy-loading detection and modal handling
 
 ### 2. AI Agent Orchestration
 - **Hierarchical Process**: Manager agent coordinates sub-agents
@@ -25,11 +25,11 @@ CamoAgent is a Desktop GUI application built with PyQt6 that integrates a stealt
 - **Custom Tools**: `GetPageTextTool`, `ScrollDownTool`, `ClickElementTool`, etc.
 - **LLM**: `deepseek-v4-pro` via SumoPod AI with `max_tokens=4096`
 
-### 3. Modern UI/UX
+### 3. Shopee-Themed UI/UX
 - **Sidebar Navigation**: Browser, Crew, Analytics, Settings panels
 - **Chat Interface**: Markdown-rendered responses with `QTextEdit` for proper text expansion
 - **Status Panel**: Real-time logging and agent activity tracking
-- **Dark Theme**: Modern dark mode styling
+- **Shopee Branding**: Orange (#EE4D2D) and white color scheme
 
 ### 4. CrewAI Tools
 | Tool | Function |
@@ -57,13 +57,14 @@ CamoAgent is a Desktop GUI application built with PyQt6 that integrates a stealt
 - `config/tasks.yaml`: Task descriptions and formatting rules
 
 ## Recent Updates
+- Rebranded from CamoAgent to ShopeeAgent with Shopee-themed UI
+- Applied Shopee orange (#EE4D2D) and white color scheme throughout the application
 - Enabled Camoufox `humanize=True` for anti-bot evasion
 - Added `GetPageTextTool` and `ScrollDownTool` for better scraping
 - Integrated functional sidebar panels (Crew, Analytics, Settings) via `QStackedWidget`
 - Integrated `markdown` library to convert AI markdown output into beautiful HTML
 - Chat bubbles now dynamically size themselves via document size calculation to prevent internal scrollbars
-- Implemented robust exception handling and thread-safe PyQt6 signal emissions (`QMetaObject.invokeMethod`) to prevent silent crashes
-- Added advanced modal-handling tools (`PressKeyTool`, `EvaluateJSTool`, `DismissDialogTool`) to close stubborn React/Headless UI popups
+- Implemented robust exception handling and thread-safe PyQt6 signal emissions
+- Added advanced modal-handling tools (`PressKeyTool`, `EvaluateJSTool`, `DismissDialogTool`)
 - Added `max_tokens=4096` to prevent response truncation
-- Disabled `memory` and `planning` features for SumoPod compatibility, but added UI controls to enable them if using the Official OpenAI provider.
-- Set fixed, responsive window dimensions (800x600) and `QLabel` user chat bubbles for safe rendering on smaller screens without text clipping.
+- Set Camoufox browser window to fixed size 1280x760 pixels for optimal Shopee viewing

@@ -70,9 +70,9 @@ class BrowserManager(QObject):
             screen_width = user32.GetSystemMetrics(0)
             screen_height = user32.GetSystemMetrics(1)
 
-            with Camoufox(headless=headless, humanize=True) as browser:
+            with Camoufox(headless=headless, humanize=True, window=(1280, 760)) as browser:
                 self._browser = browser
-                self._page = browser.new_page(viewport={"width": 1280, "height": 600})
+                self._page = browser.new_page(viewport={"width": 1280, "height": 760})
                 self._page.goto("about:blank")
                 self._running = True
 

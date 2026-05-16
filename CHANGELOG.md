@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Rebranded application from **CamoAgent** to **ShopeeAgent** with Shopee orange (#EE4D2D) and white color theme
+- Redesigned UI with Shopee brand colors: orange primary, white backgrounds, warm cream accents
+
+### Changed
+- Set Camoufox browser window to fixed size 1280x760 pixels using `window=(1280, 760)` parameter for consistent viewport.
+- Window size increased to 900x650 for better Shopee content viewing
+
+### Added
 - Added dynamic LLM Provider selection (SumoPod AI vs Official OpenAI) in Settings panel, with safety guardrails that disable unsupported features (Memory, Planning) on third-party providers.
 - Added `PressKeyTool` for keyboard automation (essential for closing modals via 'Escape').
 - Added `EvaluateJSTool` for executing custom JavaScript directly in the browser context.

@@ -1,14 +1,14 @@
-# CamoAgent - Super Agent Browser
+# ShopeeAgent - AI Shopee Manager
 
-A powerful desktop application that combines CrewAI multi-agent system with Camoufox browser for intelligent web automation.
+A powerful desktop application that combines CrewAI multi-agent system with Camoufox browser for intelligent Shopee store management.
 
 ## Features
 
-- 🦊 **Camoufox Browser Integration** - Headful browser with stealth fingerprinting
+- 🛒 **Shopee Browser Integration** - Headful browser with stealth fingerprinting for Shopee
 - 🤖 **Multi-Agent CrewAI System** - Navigator, Scraper, Analyst, and Reporter agents
-- 💬 **Chat Interface** - Natural language commands for browser automation
-- 📊 **Task Automation** - Automated web scraping, data analysis, and reporting
-- 🖥️ **Super App UI** - Icon-based navigation similar to super apps
+- 💬 **Chat Interface** - Natural language commands for Shopee automation
+- 📊 **Analytics Dashboard** - Track Shopee store performance and metrics
+- 🧡 **Shopee-Themed UI** - Beautiful orange and white design matching Shopee branding
 
 ## Requirements
 
@@ -20,10 +20,10 @@ A powerful desktop application that combines CrewAI multi-agent system with Camo
 
 ### Option 1: Using Pre-built Executable
 
-1. Download the latest `CamoAgent.exe` from releases
+1. Download the latest `ShopeeAgent.exe` from releases
 2. Copy `.env` file to the same directory as the executable
 3. Edit `.env` and add your `OPENAI_API_KEY`
-4. Run `CamoAgent.exe`
+4. Run `ShopeeAgent.exe`
 
 ### Option 2: Building from Source
 
@@ -42,27 +42,27 @@ A powerful desktop application that combines CrewAI multi-agent system with Camo
 
 ## Usage
 
-1. **Launch Browser** - Click the 🦊 icon to open Camoufox browser
-2. **Navigate Manually** - Use the browser as normal (login, navigate to websites)
+1. **Launch Browser** - Click the 🛒 icon to open Shopee browser
+2. **Navigate Manually** - Use the browser as normal (login, navigate to Shopee)
 3. **Send Commands** - Type commands in the chat box, e.g.:
-   - "Go to shopee.com and login"
-   - "Navigate to Shopee Ads and calculate ROI for each ad"
-   - "Take a screenshot of the current page"
+   - "Go to Shopee Seller Center and check my orders"
+   - "Analyze my product listings and suggest improvements"
+   - "Calculate ROI for my Shopee ads campaign"
 4. **View Results** - Agents work collaboratively and return results in the chat
 
 ## Architecture
 
 ```
-CamoAgent
+ShopeeAgent
 ├── UI Layer (PyQt6)
-│   ├── Icon Bar - Navigation icons
-│   ├── Chat Widget - Command input and responses
-│   └── Status Panel - Logs and agent status
+│   ├── Icon Bar - Navigation icons (Shopee-themed)
+│   ├── Chat Widget - Command input and AI responses
+│   └── Status Panel - Logs and agent activity
 ├── Service Layer
 │   ├── BrowserManager - Camoufox lifecycle management
 │   └── CrewExecutor - CrewAI task execution
 ├── Agent Layer (CrewAI)
-│   ├── Navigator Agent - Web navigation and interaction
+│   ├── Navigator Agent - Shopee web navigation
 │   ├── Scraper Agent - Data extraction from pages
 │   ├── Analyst Agent - Data analysis and calculations
 │   └── Reporter Agent - Results formatting
@@ -73,7 +73,7 @@ CamoAgent
 ## Project Structure
 
 ```
-camoagent/
+shopeeagent/
 ├── camoagent.py          # Main entry point
 ├── requirements.txt      # Python dependencies
 ├── camoagent.spec        # PyInstaller specification
