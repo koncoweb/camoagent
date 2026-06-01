@@ -42,7 +42,6 @@ class BrowserManager(QObject):
         try:
             session_path = self.get_session_path()
             self._page.context.storage_state(path=session_path)
-            self._safe_emit_ready()
             return True
         except Exception as e:
             self._safe_emit_error(f"Failed to save session: {str(e)}")
@@ -224,6 +223,14 @@ class BrowserManager(QObject):
             tb_str = traceback.format_exc()
             self._safe_emit_error(f"{str(e)}\n\n{traceback.format_exc()}")
         finally:
+            try:
+                if self._page is not None and self._page.context is not None:
+                    session_path = self.get_session_path()
+                    self._page.context.storage_state(path=session_path)
+                    self._safe_emit_ready()
+            except Exception:
+                pass
+            
             with self._lock:
                 self._command_queue = None
             self._browser = None

@@ -2,14 +2,18 @@ extract_ads_task:
   description: |
     Extract all advertising metrics from the current Shopee ads page.
     
+    The extract_shopee_ads_metrics tool HANDLES PAGINATION AUTOMATICALLY:
+    - Detects Next/Previous buttons on the Shopee ads table
+    - Iterates through ALL pages to collect complete data
+    - Uses max_pages=20 by default
+    
     IMPORTANT: The user should manually navigate to the Shopee Ads dashboard first before clicking the analysis button.
     
     Steps:
     1. Use get_current_page_info to verify current page
-    2. Use get_page_text to read the visible text on the ads dashboard
-    3. Use scroll_down to load all campaign data if needed
-    4. Use evaluate_js to extract table data if possible
-    5. Parse and clean the data into JSON format
+    2. Use extract_shopee_ads_metrics to extract ALL data across all pages
+    3. The tool will automatically scroll and click Next for each page
+    4. Parse and clean the data into JSON format
     
     Required JSON fields for each product:
     - product_name: Nama produk
@@ -19,7 +23,7 @@ extract_ads_task:
     - cr: Conversion Rate (dalam decimal, bukan persen)
     - selling_price: Harga jual produk
     
-    Return the complete JSON array of all products.
+    Return the complete JSON array of ALL products from ALL pages.
   expected_output: |
     A clean JSON array containing all product advertising metrics with these fields:
     product_name, shopee_cost, gmv, clicks, cr, selling_price

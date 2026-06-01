@@ -6,12 +6,16 @@ from pathlib import Path
 
 # Setup logging first - use writable location
 import tempfile
-import appdirs
 
 # Try multiple locations for log file
+try:
+    appdata_dir = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")) / "ShopeeAgent"
+except:
+    appdata_dir = Path.home() / "ShopeeAgent"
+
 log_locations = [
     Path(tempfile.gettempdir()) / "ShopeeAgent.log",
-    Path(appdirs.user_data_dir("ShopeeAgent")) / "ShopeeAgent.log",
+    appdata_dir / "ShopeeAgent.log",
     Path.home() / "ShopeeAgent.log",
 ]
 

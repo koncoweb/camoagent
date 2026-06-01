@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
   - Financial calculations: PPN 11%, Actual ROAS, Break-Even ROAS, Max CPC, Net Profit
   - Performance classification: Bagus (>Target ROAS), Cukup (Between), Rugi (<Break-Even)
   - Sequential process for Shopee Crew with proper task chaining
+  - Automatic pagination support: extracts data from ALL pages of Shopee ads table
 
 - **Browser Features**
   - Camoufox browser with stealth fingerprinting

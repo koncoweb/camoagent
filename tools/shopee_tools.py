@@ -1,55 +1,14 @@
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 from typing import Type, List, Optional, Any
+from tools.browser_tool import BrowserConfig
 import json
 import re
-
-
-class BrowserConfig:
-    _instance = None
-    _page: Optional[Any] = None
-    _queue: Optional[Any] = None
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-
-    def set_page(self, page: Any):
-        self._page = page
-
-    def get_page(self) -> Optional[Any]:
-        return self._page
-
-    def set_queue(self, queue: Any):
-        self._queue = queue
-
-    def execute_command(self, action: str, params: dict = None) -> str:
-        if self._queue is None:
-            return "Error: Browser command queue not initialized."
-        
-        from queue import Queue
-        result_queue = Queue()
-        
-        self._queue.put({
-            "action": action,
-            "params": params or {},
-            "result_queue": result_queue
-        })
-        
-        try:
-            result = result_queue.get(timeout=30)
-            if result["status"] == "success":
-                return result["data"]
-            else:
-                return f"Error: {result['message']}"
-        except Exception as e:
-            return f"Error: Command timed out or failed: {str(e)}"
+import time
 
 
 class ExtractShopeeAdsMetricsInput(BaseModel):
-    pass
+    max_pages: int = Field(default=20, description="Maximum number of pages to iterate through pagination (default: 20, set 1 for single page only)")
 
 
 class ExtractShopeeAdsMetricsTool(BaseTool):
@@ -57,34 +16,215 @@ class ExtractShopeeAdsMetricsTool(BaseTool):
     description: str = """
     Use this tool to extract advertising metrics from Shopee Seller Center ads dashboard.
     
-    This tool will:
-    1. Navigate to the Shopee Ads dashboard
-    2. Extract the campaign/product table data including:
+    This tool handles PAGINATION AUTOMATICALLY:
+    - Detects Next/Previous buttons on the Shopee ads table
+    - Iterates through ALL pages to collect complete data
+    - Extracts the campaign/product table data including:
        - Product Name
        - Shopee Cost (Biaya Iklan)
        - GMV/Sales Revenue (Omset Penjualan)
        - Clicks (Jumlah Klik)
        - Conversion Rate (Tingkat Konversi/CR)
     
-    3. Return the data as a clean JSON array
+    Use max_pages=1 to extract only the current page (no pagination).
+    Use max_pages=20 (default) to iterate up to 20 pages.
     
-    IMPORTANT: This tool requires the browser to be logged into Shopee Seller Center.
-    If not logged in, the agent will navigate to the login page first.
+    IMPORTANT: 
+    - Requires browser to be logged into Shopee Seller Center
+    - User should manually navigate to the ads dashboard first
     """
     args_schema: Type[BaseModel] = ExtractShopeeAdsMetricsInput
 
-    def _run(self, **kwargs) -> str:
+    def _run(self, max_pages: int = 20, **kwargs) -> str:
         config = BrowserConfig.get_instance()
         
-        result = config.execute_command("goto", {"url": "https://seller.shopee.co.id/ads/spsa/product"})
+        try:
+            result = config.execute_command("evaluate_js", {
+                "script": """
+                (function() {
+                    // Check if we have login page
+                    if (document.querySelector('input[name="password"]') || 
+                        window.location.href.includes('/login')) {
+                        return JSON.stringify({status: 'not_logged_in'});
+                    }
+                    
+                    // Check for table data (Shopee uses various table structures)
+                    let hasTable = document.querySelector('table, [role="table"], .table-wrapper, .ads-table');
+                    return JSON.stringify({
+                        status: 'ok',
+                        hasTable: !!hasTable,
+                        url: window.location.href
+                    });
+                })()
+                """
+            })
+            
+            if '"status":"not_logged_in"' in result or '"not_logged_in"' in result:
+                return json.dumps({
+                    "status": "error",
+                    "message": "Browser is not logged into Shopee. Please login manually first."
+                }, indent=2)
+            
+        except Exception:
+            pass
         
-        result += "\n" + config.execute_command("wait", {"timeout": 3000})
+        collected_product_data = []
+        pages_processed = 0
         
-        result += "\n" + config.execute_command("scroll_down")
+        for page_num in range(1, max_pages + 1):
+            try:
+                if page_num > 1:
+                    time.sleep(1.0)
+                    config.execute_command("scroll_down", {})
+                    time.sleep(1.0)
+                
+                    next_result = config.execute_command("evaluate_js", {
+                        "script": """
+                        (function() {
+                            // Try multiple Next button selectors common in Shopee
+                            const nextSelectors = [
+                                'button.next:not([disabled])',
+                                'button:has(.shopee-icon-button__right)',
+                                '.pagination button:contains("Next")',
+                                '.pagination .next:not([disabled])',
+                                'button[aria-label="Next"]:not([disabled])',
+                                '[class*="pagination"] button:last-child:not([disabled])',
+                                '.ads-pagination .next:not([disabled])',
+                                'li.next a:not([disabled])',
+                                '.ant-pagination-next:not([disabled])',
+                                '.page-next:not([disabled])',
+                                'button:has([class*="right"]):not([disabled])',
+                                'span.next a:not([class*="disabled"])',
+                                'a[rel="next"]:not([class*="disabled"])',
+                            ];
+                            
+                            for (const selector of nextSelectors) {
+                                try {
+                                    const el = document.querySelector(selector);
+                                    if (el && el.offsetParent !== null) {
+                                        return JSON.stringify({
+                                            found: true,
+                                            selector: selector,
+                                            text: el.innerText || el.textContent || '',
+                                            disabled: el.hasAttribute('disabled') || el.classList.contains('disabled'),
+                                            x: el.getBoundingClientRect().x,
+                                            y: el.getBoundingClientRect().y
+                                        });
+                                    }
+                                } catch(e) { continue; }
+                            }
+                            
+                            // Check all buttons for Next label
+                            const buttons = document.querySelectorAll('button, a.btn, span[role="button"]');
+                            for (const btn of buttons) {
+                                const text = (btn.innerText || btn.textContent || '').toLowerCase().trim();
+                                if (['next', 'selanjutnya', 'berikutnya', 'selanjutnya >', 'lanjut'].includes(text) ||
+                                    ['>', '›', '»'].includes(text) ||
+                                    btn.getAttribute('aria-label')?.toLowerCase()?.includes('next')) {
+                                    if (btn.offsetParent !== null && !btn.hasAttribute('disabled') && !btn.classList.contains('disabled')) {
+                                        return JSON.stringify({
+                                            found: true,
+                                            selector: `button:has-text("${text}")`,
+                                            text: btn.innerText || btn.textContent || '',
+                                            disabled: false,
+                                            x: btn.getBoundingClientRect().x,
+                                            y: btn.getBoundingClientRect().y
+                                        });
+                                    }
+                                }
+                            }
+                            
+                            return JSON.stringify({found: false});
+                        })()
+                        """
+                    })
+                    
+                    parsed_next = json.loads(next_result) if next_result else {"found": False}
+                    
+                    if not parsed_next.get("found"):
+                        break
+                    
+                    if parsed_next.get("disabled"):
+                        break
+                    
+                    time.sleep(0.3)
+                    
+                    click_result = config.execute_command("evaluate_js", {
+                        "script": """
+                        (function() {
+                            const selectors = [
+                                'button.next:not([disabled])',
+                                '.ant-pagination-next:not([disabled])',
+                                '.page-next:not([disabled])',
+                                'a[rel="next"]',
+                                'li.next a',
+                                '.pagination .next:not([disabled])',
+                            ];
+                            
+                            for (const selector of selectors) {
+                                try {
+                                    const el = document.querySelector(selector);
+                                    if (el && el.offsetParent !== null) {
+                                        el.click();
+                                        return 'clicked:' + selector;
+                                    }
+                                } catch(e) {}
+                            }
+                            
+                            const buttons = document.querySelectorAll('button, a');
+                            for (const btn of buttons) {
+                                const text = (btn.innerText || btn.textContent || '').toLowerCase().trim();
+                                if (['next', 'selanjutnya', '>', '›', '»'].includes(text) ||
+                                    btn.getAttribute('aria-label')?.toLowerCase()?.includes('next')) {
+                                    if (btn.offsetParent !== null && !btn.hasAttribute('disabled') && !btn.classList.contains('disabled')) {
+                                        btn.click();
+                                        return 'clicked:text-match';
+                                    }
+                                }
+                            }
+                            
+                            return 'no_next_found';
+                        })()
+                        """
+                    })
+                    
+                    time.sleep(2.0)
+                    
+                    config.execute_command("scroll_down", {})
+                    time.sleep(1.5)
+                
+                page_text = config.execute_command("get_text", {})
+                
+                if page_text and not page_text.startswith("Error"):
+                    collected_product_data.append(page_text)
+                    pages_processed = page_num
+                else:
+                    if page_num == 1:
+                        return json.dumps({
+                            "status": "error",
+                            "message": f"Could not read page content: {page_text}"
+                        }, indent=2)
+                    break
+                
+            except Exception as e:
+                if page_num == 1:
+                    return json.dumps({
+                        "status": "error",
+                        "message": f"Error during extraction: {str(e)}"
+                    }, indent=2)
+                break
         
-        page_text = config.execute_command("get_text")
+        combined_text = "\n\n--- PAGE {} ---\n\n".format(1) + collected_product_data[0]
+        for i, page_data in enumerate(collected_product_data[1:], start=2):
+            combined_text += "\n\n--- PAGE {} ---\n\n".format(i) + page_data
         
-        return page_text
+        return json.dumps({
+            "status": "success",
+            "pages_extracted": pages_processed,
+            "total_pages_attempted": max_pages,
+            "data": combined_text,
+            "instruction": "Parse this text into JSON format with fields: product_name, shopee_cost, gmv, clicks, cr, selling_price. All pages are separated by '--- PAGE N ---' markers."
+        }, indent=2, ensure_ascii=False)
 
 
 class CalculateActualFinancialsInput(BaseModel):
