@@ -25,13 +25,14 @@ class BrowserManager(QObject):
     def get_session_path(self) -> str:
         return os.path.abspath(self._session_file)
 
-    def launch_browser(self, headless: bool = False, headful: bool = True):
+    def launch_browser(self, headless: bool = False, headful: bool = True, target_url: str = None):
         with self._lock:
             if self._browser is not None and self._page is not None:
                 return
             if self._thread is not None and self._thread.is_alive():
                 return
             
+            self._target_url = target_url
             self._thread = threading.Thread(target=self._run_browser, args=(headless, headful), daemon=True)
             self._thread.start()
 
@@ -93,21 +94,26 @@ class BrowserManager(QObject):
 
             session_path = self.get_session_path()
             has_session = os.path.exists(session_path)
+            target_url = getattr(self, '_target_url', None) or "https://seller.shopee.co.id"
 
             browser_options = {
                 "headless": headless,
                 "humanize": True,
-                "window": (1280, 760)
+                "window": (1280, 760),
+                "locale": "id-ID",
             }
             
-            if has_session:
+            if has_session and self._target_url is None:
                 browser_options["storage_state"] = session_path
             
             with Camoufox(**browser_options) as browser:
                 self._browser = browser
                 
                 self._page = browser.new_page(viewport={"width": 1280, "height": 760})
-                self._page.goto("https://seller.shopee.co.id")
+                try:
+                    self._page.goto(target_url, wait_until="domcontentloaded", timeout=60000)
+                except Exception:
+                    self._page.goto(target_url, wait_until="commit", timeout=30000)
                 self._running = True
 
                 config = BrowserConfig.get_instance()

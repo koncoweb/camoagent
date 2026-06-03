@@ -1,14 +1,16 @@
 ================================================================================
-                    SHOPEAGENT - AI SHOPEE MANAGER
+                    SHOPEAGENT v1.2.0 — AI SHOPEE MANAGER
                          Panduan Instalasi & Penggunaan
 ================================================================================
 
 DESKRIPSI
 ----------
 ShopeeAgent adalah aplikasi desktop berbasis AI yang membantu Anda mengelola
-iklan dan toko Shopee dengan lebih efisien. Aplikasi ini menggunakan teknologi
-multi-agent AI untuk menganalisis performa iklan dan memberikan rekomendasi
-optimasi.
+toko Shopee dengan lebih efisien. Menggunakan teknologi multi-agent AI untuk:
+
+1. Menganalisis performa iklan Shopee Ads
+2. Melakukan riset pasar & analisis kompetitor (SpyAgent)
+3. Memberikan rekomendasi strategis untuk bisnis Anda
 
 ================================================================================
 PERSYARATAN SISTEM
@@ -18,8 +20,9 @@ PERSYARATAN SISTEM
 - Processor      : Intel Core i3 / AMD Ryzen 3 atau lebih tinggi
 - RAM            : Minimal 4 GB (disarankan 8 GB)
 - Storage        : Minimal 1 GB ruang kosong
-- Internet      : Diperlukan untuk pertama kali install dan download browser
-- Akun Shopee   : Akun Shopee Seller Center yang aktif
+- Internet       : Diperlukan untuk install dan download browser
+- Akun Shopee    : Akun Shopee Seller Center (untuk Ads Agent)
+- API Key        : Key dari SumoPod AI atau OpenAI (untuk fitur AI)
 
 ================================================================================
 CARA INSTALASI
@@ -28,157 +31,104 @@ CARA INSTALASI
 1. DOUBLE-CLICK file "ShopeeAgent-Setup.exe"
 
 2. Jika muncul peringatan "Windows Protected Your PC":
-   - Klik "More info"
-   - Klik "Run anyway"
+   - Klik "More Info" lalu "Run Anyway"
 
-3. Ikuti instruksi di layar instalasi:
-   - Pilih lokasi instalasi (default: C:\Program Files\ShopeeAgent)
-   - Klik "Install" untuk melanjutkan
+3. Ikuti petunjuk di layar
 
-4. Tunggu hingga proses instalasi selesai
-
-5. Klik "Finish" untuk menyelesaikan instalasi
-
-6. SHORTCUT akan otomatis dibuat di:
-   - Desktop
-   - Start Menu
+4. Setelah selesai, shortcut akan muncul di Desktop
 
 ================================================================================
-PENGATURAN AWAL (PENTING!)
+SETUP AWAL (PENTING!)
 ================================================================================
 
-SETELAH INSTALASI, IKUTI LANGKAH BERIKUT:
+1. JALANKAN ShopeeAgent dari Desktop shortcut
 
-1. BUKA FILE .env
-   --------------------------------------------------------------------------
-   Buka folder instalasi:
-   C:\Program Files\ShopeeAgent\
+2. KLIK ikon ⚙️ (Settings) di sidebar kiri
+   - Settings terbuka sebagai jendela terpisah
+   - Chat di belakang TETAP ADA — tidak hilang
 
-   Edit file bernama ".env" menggunakan Notepad
+3. TAMBAHKAN API KEY ANDA
+   - Pilih Provider: SumoPod AI (default) atau OpenAI
+   - Masukkan API key di kolom yang tersedia
+   - Klik "Apply Settings" -> API key TERSIMPAN PERMANEN
 
-2. TAMBAHKAN API KEY ANDA
-   --------------------------------------------------------------------------
-   Ubah baris:
-   SUMOPOD_API_KEY=your_api_key_here
+   CATATAN: Anda bisa mendapatkan API key dari:
+   - SumoPod AI: https://ai.sumopod.com
+   - OpenAI: https://platform.openai.com
 
-   Menjadi (contoh):
-   SUMOPOD_API_KEY=sk-xxxxxxxxxxxxx
-
-   CATATAN: Anda bisa mendapatkan API key dari SumoPod AI
-   Kunjungi: https://ai.sumopod.com
-
-3. SIMPAN file .env
+4. PILIH MODEL AI
+   - SumoPod: MiniMax-M2.7-highspeed (recommended)
+   - OpenAI: gpt-4o-mini
 
 ================================================================================
-CARA MENJALANKAN APLIKASI
+FITUR UTAMA
 ================================================================================
 
-METODE 1 - DARI DESKTOP:
-   Double-click icon "ShopeeAgent" di Desktop
+🛒 Browser Shopee (Seller Center)
+- Buka browser ke seller.shopee.co.id
+- Login sekali, auto-save session
+- Digunakan untuk Ads Agent
 
-METODE 2 - DARI START MENU:
-   1. Klik tombol Start
-   2. Ketik "ShopeeAgent"
-   3. Klik pada hasil "ShopeeAgent"
+📢 Shopee Ads Agent
+- Analisis performa iklan Shopee Anda
+- Hitung ROAS, Break-Even, Max CPC
+- Klasifikasi: Bagus / Cukup / Rugi
+- Rekomendasi optimasi bid
+
+🕵️ SpyAgent — Market Research (BARU!)
+- Buka browser ke shopee.co.id (marketplace)
+- TIDAK PERLU LOGIN — scan sebagai pembeli biasa
+- 4 tombol aksi di atas chat:
+  📡 Scan Market — Ekstrak data produk
+  💬 Review Mine — Analisis ulasan pelanggan
+  🏪 Store Profile — Profil toko kompetitor
+  🎯 Full Report — Laporan market intelligence lengkap
+
+🤖 AI Crew — Lihat konfigurasi agen AI
+📊 Analytics — Dashboard performa & history
+⚙️ Settings — Konfigurasi API key & model
 
 ================================================================================
-CARA PENGGUNAAN
+TIPS PENGGUNAAN
 ================================================================================
 
-1. BUKA BROWSER SHOPEE
-   --------------------------------------------------------------------------
-   - Klik icon 🛒 (Shopee Browser) di sidebar kiri
-   - Browser Camoufox akan terbuka otomatis ke Shopee Seller Center
-   - Login ke akun Shopee Anda secara manual (sekali saja)
-   - Session akan tersimpan untuk penggunaan berikutnya
+1. API KEY DISIMPAN PERMANEN
+   - Setting → Apply → key tersimpan di file .env
+   - Tidak perlu input ulang setelah restart aplikasi
 
-2. NAVIGASI KE HALAMAN IKLAN
-   --------------------------------------------------------------------------
-   - Di browser, navigasi ke halaman iklan Shopee
-   - Menu: Iklan > Iklan Produk
+2. SESSION LOGIN DISIMPAN OTOMATIS
+   - Login sekali di browser Seller Center
+   - Session auto-save saat browser ditutup
 
-3. MULAI ANALISIS IKLAN
-   --------------------------------------------------------------------------
-   - Klik icon 📢 (Shopee Ads) di sidebar kiri aplikasi
-   - AI akan menganalisis data iklan secara otomatis
-   - Tunggu hingga analisis selesai
+3. NAVIGASI AMAN
+   - Klik menu lain saat spy/ads active = kembali ke chat
+   - Chat TIDAK hilang saat pindah panel Crew/Analytics
+   - Settings terbuka sebagai jendela TERPISAH
 
-4. LIHAT HASIL
-   --------------------------------------------------------------------------
-   - Hasil analisis akan muncul di panel chat
-   - Include: ROAS, Break-Even, Status Performa, dan Rekomendasi
+4. SPY AGENT TIDAK PERLU LOGIN
+   - Bisa langsung scan produk di marketplace
+   - Cari keyword atau browse kategori, lalu klik Scan
 
 ================================================================================
 TROUBLESHOOTING
 ================================================================================
 
-MASALAH: Aplikasi tidak bisa dibuka setelah instalasi
---------------------------------------------------------------------------
-SOLUSI:
-- Pastikan Anda sudah menginstall Visual C++ Redistributable
-- Download dari: https://aka.ms/vs/17/release/vc_redist.x64.exe
+MASALAH: Aplikasi tidak bisa dibuka
+SOLUSI: Pastikan antivirus tidak memblokir. Tambahkan ke exception.
 
-MASALAH: Error "Permission denied" saat membuka aplikasi
---------------------------------------------------------------------------
-SOLUSI:
-- Klik kanan icon ShopeeAgent
-- Pilih "Run as administrator"
+MASALAH: Browser tidak muncul
+SOLUSI: Internet diperlukan untuk download Camoufox (sekali saja).
 
-MASALAH: Browser tidak terbuka
---------------------------------------------------------------------------
-SOLUSI:
-- Buka Command Prompt sebagai Administrator
-- Jalankan perintah: python -m camoufox fetch
-- Tunggu hingga download selesai
+MASALAH: API key tidak tersimpan
+SOLUSI: Gunakan Settings dialog (⚙️), klik Apply. Atau edit langsung
+        file .env di folder C:\Program Files\ShopeeAgent\
 
-MASALAH: API Error saat menggunakan AI
---------------------------------------------------------------------------
-SOLUSI:
-- Pastikan API key di file .env sudah benar
-- Pastikan Anda memilikiCredits di SumoPod AI
-- Cek koneksi internet Anda
-
-MASALAH: Aplikasi crash saat pertama kali dibuka
---------------------------------------------------------------------------
-SOLUSI:
-- Pastikan .env file ada dan valid
-- Pastikan tidak ada karakter khusus di API key
-- Hapus file .shopee_session jika ada masalah login
+MASALAH: SpyAgent browser timeout
+SOLUSI: Koneksi internet lambat. Coba lagi — app sudah dioptimasi
+        dengan timeout 60 detik + fallback.
 
 ================================================================================
-MENGHAPUS APLIKASI (UNINSTALL)
+KONTAK & DUKUNGAN
 ================================================================================
 
-1. BUKA CONTROL PANEL
-   - Klik Start > ketik "Control Panel"
-   - Pilih "Programs and Features"
-
-2. CARI "SHOPEAGENT"
-   - Klik kanan pada "ShopeeAgent"
-   - Pilih "Uninstall"
-
-3. IKUTI INSTRUKSI
-   - Tunggu hingga proses uninstall selesai
-
-ATAU:
-   - Buka folder instalasi (C:\Program Files\ShopeeAgent\)
-   - Jalankan file "Uninstall.exe"
-
-================================================================================
-INFORMASI LEBIH LANJUT
-================================================================================
-
-Website      : https://shopeeagent.com (jika tersedia)
-Dokumentasi : https://docs.shopeeagent.com
-Support     : Hubungi administrator Anda
-
-================================================================================
-Versi       : 1.0.0
-Tanggal     : 2025
-Lisensi     : MIT License
-================================================================================
-
-TERIMA KASIH TELAH MENGGUNAKAN SHOPEAGENT!
-
-Jika panduan ini tidak membantu, silakan hubungi administrator atau tim support
-Anda untuk mendapatkan bantuan lebih lanjut.
+Untuk bantuan teknis, hubungi pengembang aplikasi.

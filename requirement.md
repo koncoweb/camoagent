@@ -1,16 +1,18 @@
 # ShopeeAgent - Project Requirements
 
 ## Overview
-**ShopeeAgent** is a Desktop GUI application built with PyQt6 that integrates a stealth browser (Camoufox/Playwright) with a multi-agent AI system (CrewAI) specifically designed for Shopee store management and ads optimization.
+**ShopeeAgent v1.2.0** is a Desktop GUI application built with PyQt6 that integrates a stealth browser (Camoufox/Playwright) with a multi-agent AI system (CrewAI) for Shopee store management, ads optimization, and **market intelligence & competitor analysis**.
 
 ## Core Dependencies
 | Package | Purpose |
 |---------|---------|
 | **PyQt6** | Desktop graphical user interface |
-| **CrewAI** | Multi-agent AI orchestration |
+| **CrewAI** | Multi-agent AI orchestration with Memory & Planning |
 | **Camoufox** | Stealth browser automation with anti-bot evasion |
+| **BrowserForge** | Anti-detect fingerprinting data |
 | **OpenAI SDK** | API interaction with SumoPod AI or OpenAI |
 | **Markdown** | Parse markdown to HTML for chat interface |
+| **Playwright** | Browser automation (bundled with Camoufox) |
 
 ## Core Features
 
@@ -18,114 +20,139 @@
 - **Camoufox** with `humanize=True` for human-like mouse movements
 - **BrowserForge fingerprinting** for anti-detect capabilities
 - **Session Persistence** using Playwright storage_state to avoid re-login
-- **Thread-safe Command Queue** pattern for cross-thread communication
-- **Fixed 1280x760 viewport** for optimal Shopee viewing
+- **Auto-save** session when browser closes
+- **Thread-safe Command Queue** for cross-thread communication
+- **Dual URL support**: `seller.shopee.co.id` (Ads) or `shopee.co.id` (Spy — guest mode)
+- **Indonesian locale**: `locale="id-ID"` for Bahasa Indonesia content
+- **Timeout resilience**: `domcontentloaded` (60s) → `commit` (30s) fallback
 
-### 2. AI Agent Orchestration
-- **Sequential Process**: Manager agent coordinates sub-agents
-- **Three Specialized Agents**:
-  - ShopeeNavigator - Data extraction from Shopee pages
-  - FinancialAnalyst - Financial calculations (ROAS, Break-Even, Max CPC)
-  - AdsOptimizer - Bid optimization recommendations
-- **Custom Tools**: GetPageTextTool, ScrollDownTool, ClickElementTool, etc.
-- **LLM**: Configurable (default: MiniMax-M2.7-highspeed via SumoPod AI)
-
-### 3. Shopee Ads Management
+### 2. Shopee Ads Management (📢)
+- **3 specialized agents**: Navigator, Financial Analyst, Ads Optimizer
 - Extract advertising metrics from Shopee Seller Center
-- Calculate financial metrics:
-  - Actual Cost = Shopee Cost × 1.11 (PPN 11%)
-  - Actual ROAS = GMV / Actual Cost
-  - Net Profit = Selling Price - HPP - Admin Fee - Operational
-  - Break-Even ROAS = Selling Price / Net Profit
-  - Max CPC = Net Profit × Conversion Rate
-- Performance classification:
-  - 🎯 **Bagus**: ROAS > 5.0
-  - ⏸️ **Cukup**: Break-Even < ROAS < 5.0
-  - 🛑 **Rugi**: ROAS < Break-Even
-- Generate bid optimization recommendations
+- Financial calculations: PPN 11%, Actual ROAS, Break-Even ROAS, Max CPC, Net Profit
+- Performance classification: Bagus (>Target ROAS), Cukup (Between), Rugi (<Break-Even)
+- Bid optimization recommendations
+- Automatic pagination across ALL pages
+
+### 3. SpyAgent — Market Intelligence (🕵️) NEW in v1.2.0
+- **4 specialized agents with 5 custom tools**:
+  - MarketScanner — Structured DOM extraction
+  - CompetitorProfiler — Store & price analysis
+  - TrendDetector — Bestsellers & review mining
+  - StrategySynthesizer — Full market intelligence report
+- **5 Spy Tools**:
+  - `MarketScanTool` — 16-field structured JSON per product
+  - `ReviewMinerTool` — Pain points (1-2★) & strengths (4-5★)
+  - `StoreProfilerTool` — Name, rating, followers, badges
+  - `GapAnalyzeTool` — Underserved niches + price gaps
+  - `KeywordExtractorTool` — Competitor listing keywords
+- **Memory + Planning**: Enabled for deeper analysis
+- **Guest mode**: No login needed, scans as regular buyer
 
 ### 4. Shopee-Themed UI/UX
-- **Sidebar Navigation**: Browser, Ads, Crew, Analytics, Settings panels
-- **Chat Interface**: Markdown-rendered responses with dynamic height
+- **Sidebar Navigation**: Browser, Ads, Spy, Crew, Analytics, Settings
+- **Settings as dialog**: Opens as modal window — preserves chat behind it
+- **Session-aware navigation**: Chat preserved when switching panels
+- **SpyAgent Action Bar**: 4 color-coded buttons above chat
+- **Chat Interface**: Markdown rendering with dynamic height
 - **Status Panel**: Real-time logging and agent activity tracking
-- **Settings Panel**: LLM configuration and API key management
-- **Shopee Branding**: Orange (#EE4D2D) and white color scheme
+- **Global stylesheet**: Tooltips & modals use dark text on light background
 
-## Custom Tools
+## Settings & Persistence (NEW in v1.2.0)
+- API keys saved to `.env` file (survive app restart)
+- Settings dialog as standalone QDialog
+- 100% non-blocking: Settings never interrupts spy/ads chat
 
+## Full Tool Inventory
+
+### Browser Tools (11 tools)
 | Tool | Function |
 |------|----------|
 | `GetCurrentPageInfoTool` | Get current URL and title |
 | `NavigateToUrlTool` | Navigate to a specific URL |
 | `GetPageContentTool` | Get raw HTML content |
-| `GetPageTextTool` | Get clean innerText (preferred) |
-| `ScrollDownTool` | Scroll page for lazy-loaded content |
+| `GetPageTextTool` | Get clean innerText |
+| `ScrollDownTool` | Scroll for lazy-loaded content |
 | `ClickElementTool` | Click element by CSS selector |
 | `TypeTextTool` | Type text into input fields |
-| `PressKeyTool` | Send specific keyboard keys |
-| `EvaluateJSTool` | Execute custom JavaScript on the page |
+| `PressKeyTool` | Send keyboard keys |
+| `EvaluateJSTool` | Execute custom JavaScript |
 | `DismissDialogTool` | Multi-strategy modal closer |
-| `SaveSessionTool` | Save browser session to file |
-| `ExtractShopeeAdsMetricsTool` | Extract ads metrics from Shopee |
-| `CalculateActualFinancialsTool` | Calculate financial metrics |
-| `GenerateAdsRecommendationTool` | Generate bid recommendations |
+| `SaveSessionTool` | Save browser session |
 
-## Shopee Crew Agents
+### Ads Tools (3 tools)
+| `ExtractShopeeAdsMetricsTool` | Extract ads metrics + auto-pagination |
+| `CalculateActualFinancialsTool` | ROAS, Break-Even, Max CPC, Net Profit |
+| `GenerateAdsRecommendationTool` | Bid optimization recommendations |
 
-### ShopeeNavigator Agent
-- **Role**: Shopee Dashboard Navigator
-- **Goal**: Navigate to Shopee Seller Center ads dashboard and extract clean metrics data in JSON format
-- **Tools**: All browser tools
+### SpyAgent Tools (5 tools) NEW
+| `MarketScanTool` | Structured DOM extraction, 16 fields, auto-pagination |
+| `ReviewMinerTool` | Customer review sentiment analysis |
+| `StoreProfilerTool` | Store metrics, badges, followers |
+| `GapAnalyzeTool` | Niche opportunity detection |
+| `KeywordExtractorTool` | Competitor keyword intelligence |
 
-### FinancialAnalyst Agent
-- **Role**: E-commerce Financial Analyst
-- **Goal**: Calculate actual financial metrics including PPN 11%, Break-Even ROAS, Net Profit, and classify performance
-- **Tools**: CalculateActualFinancialsTool
+## Crew Agents
 
-### AdsOptimizer Agent
-- **Role**: PPC Strategist & Ads Optimizer
-- **Goal**: Analyze financial reports and generate actionable bid optimization recommendations
-- **Tools**: GenerateAdsRecommendationTool
+### Shopee Ads Crew (3 agents)
+- **ShopeeNavigator**: Extracts data from Shopee pages
+- **FinancialAnalyst**: Calculates ROAS, Break-Even, Max CPC
+- **AdsOptimizer**: Generates bid recommendations
 
-## Architectural Requirements
-1. **Thread Safety**: Playwright runs in isolated background thread; all interactions routed through `asyncio.Queue`.
-2. **AI Provider**: SumoPod AI or Official OpenAI, configurable via Settings
-3. **UI/UX**: Non-blocking interface with proper text expansion in chat bubbles
-4. **Session Persistence**: storage_state JSON file for Shopee login
-5. **Configuration**: Declarative agent/tasks in YAML files
+### Spy Crew (4 agents) NEW
+- **MarketScanner**: DOM extraction + browser navigation
+- **CompetitorProfiler**: Gap analysis + keyword intelligence
+- **TrendDetector**: Bestsellers + review mining
+- **StrategySynthesizer**: Full market intelligence report
 
 ## Configuration Files
-- `.env` / `.env.example`: API keys and endpoint configuration
-- `config/agents.yaml`: Browser crew agent definitions
-- `config/tasks.yaml`: Browser crew task definitions
-- `config/shopee_agents.yaml`: Shopee ads crew agent definitions
-- `config/shopee_tasks.yaml`: Shopee ads task definitions
+- `.env`: API keys and endpoint (auto-saved from Settings)
+- `config/shopee_agents.yaml`: Ads agent definitions
+- `config/shopee_tasks.yaml`: Ads task definitions
+- `config/spy_agents.yaml`: SpyAgent agent definitions NEW
+- `config/spy_tasks.yaml`: SpyAgent task definitions NEW
 
 ## Installation & Build
 
 ### Requirements
 - Windows 10/11
 - Python 3.10+
-- Internet connection (for first run - downloads Camoufox browser)
+- Internet connection (first run downloads Camoufox browser)
 - API key (SumoPod AI or OpenAI)
 
-### Build Options
-1. **NSIS Installer**: `ShopeeAgent-Setup.exe` (232 MB)
-2. **Portable ZIP**: `dist/ShopeeAgent/`
-3. **From Source**: `build.bat`
+### Build Process
+```batch
+pip install -r requirements.txt
+python -m PyInstaller shopeeagent.spec --noconfirm
+powershell -ExecutionPolicy Bypass -File copy_all_data.ps1
+makensis installer.nsi
+```
+
+### Build Output
+| File | Size | Purpose |
+|------|------|---------|
+| `ShopeeAgent-Setup.exe` | ~204 MB | NSIS Installer |
+| `dist/ShopeeAgent/` | ~580 MB | Portable folder |
 
 ## Recent Updates
 
-### v1.0.0 (2025-05-16)
-- Full rebrand from CamoAgent to ShopeeAgent
-- Shopee orange (#EE4D2D) themed UI
-- Shopee Ads Management with 3 AI agents
-- Session persistence with storage_state
-- NSIS installer distribution
-- API key input in Settings panel
-- Multiple SumoPod model support
+### v1.2.0 (2025-06-04)
+- SpyAgent v2.0: Market Intelligence & Competitor Analysis
+- Structured DOM extraction (16 fields, no LLM parsing)
+- ReviewMinerTool, StoreProfilerTool, KeywordExtractorTool
+- Settings as standalone dialog — preserves chat state
+- API key persistence to .env file
+- Session-aware navigation (chat never cleared accidentally)
+- Indonesian locale (locale="id-ID")
+- Tooltip/modal text visibility fix
+- DEVELOPER_GUIDE.md with 11 error patterns
 
-### v0.1.0
-- Initial CamoAgent project
-- Basic CrewAI browser automation
-- PyQt6 desktop interface
+### v1.1.0 (2025-06-01)
+- SpyAgent v1.0 initial release
+- Chat separation between agents
+- Browser locale fix
+
+### v1.0.0 (2025-06-01)
+- Initial ShopeeAgent release
+- Ads Management with 3 agents
+- NSIS installer distribution

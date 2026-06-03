@@ -1,221 +1,155 @@
-# ShopeeAgent - AI Shopee Manager
+# ShopeeAgent v1.2.0 — AI Shopee Manager
 
-A powerful desktop application that combines CrewAI multi-agent system with Camoufox browser for intelligent Shopee store management.
+A powerful desktop application combining CrewAI multi-agent intelligence with Camoufox stealth browser for Shopee store management, ads optimization, and market intelligence.
 
-![ShopeeAgent](https://img.shields.io/badge/Version-1.0.0-EE4D2D?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.2.0-EE4D2D?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 ## 🎯 Features
 
-### 🛒 Shopee Browser Integration
-- **Camoufox** stealth browser with anti-bot evasion
-- Human-like mouse movements with `humanize=True`
-- Session persistence - no re-login required
-- Fixed 1280x760 viewport for optimal viewing
-- Auto-navigate to Shopee Seller Center
+### 🛒 Browser Features
+- **Camoufox** stealth browser — undetectable by Shopee anti-bot
+- **Session auto-save** — login once, never again
+- **Dual mode**: Seller Center (login) or Marketplace (guest)
+- Indonesian locale (`id-ID`) for Bahasa Indonesia content
+- Timeout-resilient navigation for heavy pages
 
-### 📊 Shopee Ads Management
-- **AI-Powered Analysis** with 3 specialized agents
-- Financial calculations: ROAS, Break-Even, Max CPC, Net Profit
+### 📢 Shopee Ads Management
+- 3 AI agents: Navigator → Financial Analyst → Ads Optimizer
+- ROAS, Break-Even, Max CPC, Net Profit calculations with PPN 11%
 - Performance classification: Bagus / Cukup / Rugi
-- Bid optimization recommendations
-- Sequential CrewAI workflow
+- Auto-pagination across ALL pages
 
-### 🤖 AI Agents
-| Agent | Role | Function |
-|-------|------|----------|
-| 🛒 Navigator | Shopee Dashboard Navigator | Extract data from Shopee pages |
-| 📊 Financial Analyst | E-commerce Financial Analyst | Calculate ROAS, Break-Even, Max CPC |
-| 🎯 Ads Optimizer | PPC Strategist | Generate bid recommendations |
+### 🕵️ SpyAgent — Market Intelligence (NEW v1.2.0)
+- 4 AI agents + 5 custom tools for competitor analysis
+- **Structured DOM extraction** — 16 data fields per product in clean JSON
+- **Review mining** — extract customer pain points & strengths
+- **Store profiling** — rating, followers, product count, badges
+- **Gap analysis** — find underserved niches with data justification
+- Action bar UI with 4 color-coded buttons
 
-### 🛠️ Custom Tools
-| Tool | Function |
-|------|----------|
-| `GetCurrentPageInfoTool` | Get current URL and title |
-| `NavigateToUrlTool` | Navigate to specific URL |
-| `GetPageTextTool` | Get clean innerText |
-| `ScrollDownTool` | Scroll for lazy-loaded content |
-| `ClickElementTool` | Click element by CSS selector |
-| `PressKeyTool` | Send keyboard keys |
-| `DismissDialogTool` | Close modals/popups |
-| `SaveSessionTool` | Save browser session |
+### 🤖 AI Agents (7 total)
+| Agent | Role | Crew |
+|-------|------|------|
+| 🛒 Navigator | Data extraction | Ads |
+| 📊 Financial Analyst | ROAS/BE/Max CPC | Ads |
+| 🎯 Ads Optimizer | Bid recommendations | Ads |
+| 📡 Market Scanner | DOM extraction | Spy |
+| 📈 Trend Detector | Bestsellers + reviews | Spy |
+| 📊 Competitor Profiler | Store + price analysis | Spy |
+| 🎯 Strategy Synthesizer | Full report | Spy |
 
-### 🎨 Shopee-Themed UI
-- Orange (#EE4D2D) and white color scheme
-- Chat interface with Markdown rendering
-- Real-time status panel
-- Crew configuration panel
-- Analytics dashboard
-- Settings with API key management
+### 🛠️ 19 Custom Tools
+- **Browser tools** (11): navigate, scroll, click, type, JS, etc.
+- **Ads tools** (3): extract metrics, calculate financials, generate recommendations
+- **Spy tools** (5): market scan, review mine, store profile, gap analyze, keyword extract
+
+### 🎨 UI/UX
+- **Settings as standalone dialog** — never blocks your chat
+- **Session-aware navigation** — switching panels preserves conversation
+- **API key persistence** — saved to `.env`, survives restart
+- Dark tooltip text on light background (readable!)
+- Color-coded SpyAgent action bar
+- Markdown-rendered chat with dynamic bubble height
 
 ## 📥 Installation
 
-### Option 1: NSIS Installer (Recommended)
+### NSIS Installer (Recommended)
 ```
-1. Download ShopeeAgent-Setup.exe
-2. Run the installer
-3. Launch from Desktop or Start Menu
-```
-
-### Option 2: Portable Version
-```
-1. Download ShopeeAgent-Portable.zip
-2. Extract to any folder
-3. Run ShopeeAgent.exe
+1. Download ShopeeAgent-Setup.exe (~204 MB)
+2. Run as Administrator
+3. Launch from Desktop shortcut
 ```
 
-### Option 3: Build from Source
-
-```batch
-# Clone repository
-git clone <repo-url>
-cd camoagent
-
-# Create .env file
-echo SUMOPOD_API_KEY=your_api_key > .env
-
-# Run build script
-build.bat
+### Portable Version
+```
+1. Extract dist/ShopeeAgent/ folder
+2. Run ShopeeAgent.exe
+3. No installation needed
 ```
 
-## 🚀 Usage
+## 🚀 Quick Start
 
-### First Time Setup
-1. Launch ShopeeAgent
-2. Click 🛒 to open browser
-3. Login to Shopee Seller Center (manual)
-4. Session will be saved automatically
+### Ads Analysis
+```
+1. Click 🛒 → browser opens seller.shopee.co.id
+2. Login to Shopee manually (auto-saved)
+3. Navigate to Ads dashboard
+4. Click 📢 → agents analyze your ads
+```
 
-### Running Analysis
-1. Navigate to Shopee Ads dashboard in browser
-2. Click 📢 icon to start analysis
-3. View results in chat panel
+### Market Research (SpyAgent)
+```
+1. Click 🕵️ → browser opens shopee.co.id (guest mode)
+2. Search any product or browse a category
+3. Click 📡 Scan or 🎯 Full Report in action bar
+4. Receive comprehensive market intelligence report
+```
 
 ### Settings
-- **Provider**: SumoPod AI (default) or OpenAI
-- **Model**: Select from available models
-- **API Keys**: Enter your keys directly in Settings
+```
+1. Click ⚙️ → dialog opens (chat preserved behind it)
+2. Enter API key, select model
+3. Click Apply → saved to .env permanently
+4. Close dialog → back to your work
+```
+
+## 🏗️ Build from Source
+
+```powershell
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Build executable
+python -m PyInstaller shopeeagent.spec --noconfirm
+
+# 3. Copy ALL data files (535+ files from 7 packages)
+powershell -ExecutionPolicy Bypass -File copy_all_data.ps1
+
+# 4. Build NSIS installer
+& "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+```
+
+| Output | Size |
+|--------|------|
+| `ShopeeAgent-Setup.exe` | ~204 MB |
+| `dist/ShopeeAgent/` | ~580 MB |
+
+> ⚠️ See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for common errors and build checklist.
 
 ## 🏗️ Architecture
 
 ```
 ShopeeAgent
 ├── UI Layer (PyQt6)
-│   ├── Icon Bar - Navigation (Browser, Ads, Crew, Settings)
-│   ├── Chat Widget - Command input & AI responses
-│   ├── Status Panel - Real-time logs
-│   └── Settings Panel - Configuration
+│   ├── Icon Bar — Navigation (Browser, Ads, Spy, Crew, Analytics, Settings)
+│   ├── Chat Widget — Command input & AI responses with action bar
+│   ├── Status Panel — Real-time logs
+│   └── Settings Dialog — Standalone modal window
 │
 ├── Service Layer
-│   ├── BrowserManager - Camoufox lifecycle
-│   └── CrewExecutor - CrewAI execution
+│   ├── BrowserManager — Camoufox lifecycle & Playwright commands
+│   └── CrewExecutor — Thread-safe agent execution
 │
-├── Agent Layer (CrewAI)
-│   ├── ShopeeNavigator - Data extraction
-│   ├── FinancialAnalyst - Financial calculations
-│   └── AdsOptimizer - Recommendations
+├── AI Layer (CrewAI)
+│   ├── ShopeeCrew — 3 agents for ads analysis
+│   └── SpyCrew — 4 agents for market intelligence
 │
-└── Tools Layer
-    └── Custom Browser Tools
+├── Tools Layer
+│   ├── Browser tools (11) — Page interaction
+│   ├── Ads tools (3) — Metrics & financials
+│   └── Spy tools (5) — DOM extraction, reviews, store profiling
+│
+└── Config Layer
+    ├── shopee_agents.yaml / shopee_tasks.yaml
+    └── spy_agents.yaml / spy_tasks.yaml
 ```
 
-## 📁 Project Structure
+## 📁 Key Files
 
-```
-shopeeagent/
-├── camoagent.py           # Main entry point
-├── camoagent.spec        # PyInstaller spec
-├── build.bat            # Build script
-├── requirements.txt     # Dependencies
-│
-├── config/              # Configuration
-│   ├── agents.yaml
-│   ├── tasks.yaml
-│   ├── shopee_agents.yaml
-│   └── shopee_tasks.yaml
-│
-├── crews/               # CrewAI crews
-│   ├── browser_crew.py
-│   └── shopee_crew.py
-│
-├── tools/               # Custom tools
-│   ├── browser_tool.py
-│   └── shopee_tools.py
-│
-├── services/            # Application services
-│   ├── browser_manager.py
-│   └── crew_executor.py
-│
-├── ui/                  # PyQt6 UI
-│   ├── main_window.py
-│   └── panels.py
-│
-└── docs/               # Documentation
-    └── INSTALLER_GUIDE.md
-```
-
-## 🔧 Configuration
-
-### Environment Variables (.env)
-```env
-SUMOPOD_API_KEY=your_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-### Available Models
-
-**SumoPod AI:**
-- `MiniMax-M2.7-highspeed` (default)
-- `deepseek-v4-pro`
-- `MiniMax-Text-01`
-- `abab6.5s-chat`
-- `abab6.5g-chat`
-
-**OpenAI:**
-- `gpt-4o`
-- `gpt-4o-mini`
-- `gpt-4-turbo`
-
-## 📊 Financial Calculations
-
-| Metric | Formula |
-|--------|---------|
-| Actual Cost | Shopee Cost × 1.11 (PPN 11%) |
-| Actual ROAS | GMV / Actual Cost |
-| Net Profit | Selling Price - HPP - Admin Fee - Operational |
-| Break-Even ROAS | Selling Price / Net Profit |
-| Max CPC | Net Profit × Conversion Rate |
-
-### Performance Classification
-- **🎯 Bagus**: ROAS > 5.0 (Target)
-- **⏸️ Cukup**: Break-Even < ROAS < 5.0
-- **🛑 Rugi**: ROAS < Break-Even
-
-## 🐛 Troubleshooting
-
-### Browser won't launch
-```bash
-# Re-fetch Camoufox
-python -m camoufox fetch
-```
-
-### API errors
-- Check API key in Settings panel
-- Ensure sufficient credits in SumoPod/OpenAI
-
-### Build fails
-```bash
-# Update dependencies
-pip install --upgrade -r requirements.txt
-```
-
-## 📄 License
-
-MIT License - see [LICENSE.txt](LICENSE.txt)
-
-## 🙏 Acknowledgments
-
-- [CrewAI](https://crewai.com/) - Multi-agent framework
-- [Camoufox](https://camoufox.com/) - Stealth browser
-- [PyQt6](https://riverbankcomputing.com/software/pyqt/) - Desktop UI
+| File | Purpose |
+|------|---------|
+| [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) | Error patterns & build guide |
+| [CHANGELOG.md](CHANGELOG.md) | Version history |
+| [requirement.md](requirement.md) | Full requirements |
+| [ShopeeAgent-Setup-README.txt](ShopeeAgent-Setup-README.txt) | End-user guide |

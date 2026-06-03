@@ -1,0 +1,122 @@
+scan_market_task:
+  description: |
+    Scan the current Shopee marketplace page for products using STRUCTURED DOM extraction.
+    
+    You are on https://shopee.co.id - a public marketplace page showing search results.
+    
+    Steps:
+    1. Use scan_shopee_market with extract_structured=True
+    2. The tool automatically:
+       - Detects products via DOM selectors (multiple fallback)
+       - Extracts: product_name, price, original_price, sold, sold_text, rating,
+         store_name, store_location, is_ad, is_star_seller, discount_percent,
+         free_shipping, has_voucher, badge, product_url, image_url
+       - Handles pagination across ALL pages
+       - Returns clean JSON (no LLM parsing needed)
+    
+    IMPORTANT: The tool returns structured JSON directly. Use the products array for analysis.
+  expected_output: |
+    Structured JSON with products array containing all scanned items with full metadata.
+
+profile_competitors_task:
+  description: |
+    Analyze market position using the scanned data and additional tools.
+    
+    Steps:
+    1. Use analyze_market_gaps on the scan results to find:
+       - Gap opportunities (high demand, few sellers)
+       - Underserved price tiers (price_gaps)
+       - Ads percentage and market composition
+    
+    2. From the scan data, identify:
+       - Top 5 stores by sales volume
+       - Price tier distribution (budget/mid/premium)
+       - Star sellers and official stores
+       - Products with free shipping advantage
+       - Discount patterns
+    
+    3. From keyword analysis (use extract_listing_keywords):
+       - Common keywords in top-selling products
+       - Attributes most frequently mentioned
+    
+    Return structured markdown analysis.
+  expected_output: |
+    Structured markdown report with competitor profiles, price analysis,
+    gap opportunities, and keyword intelligence.
+
+detect_trends_task:
+  description: |
+    Detect market trends and customer sentiment.
+    
+    Steps:
+    1. From scan data, identify:
+       - Products with highest sold counts (bestsellers)
+       - Products with high ratings (customer favorites)
+       - Price-performance ratio leaders
+    
+    2. For the top 1-2 best-selling products:
+       - Navigate to the product page
+       - Click the Ulasan/Reviews tab
+       - Use mine_product_reviews to extract:
+         - Pain points (1-2 star reviews)
+         - Strengths (4-5 star reviews)
+         - Average customer rating
+         - Common complaint themes
+    
+    3. Identify trends:
+       - What product attributes drive the most sales?
+       - What customer complaints represent improvement opportunities?
+       - What are the "must-have" features in this category?
+    
+    Return structured analysis with customer insights.
+  expected_output: |
+    Trend analysis including bestsellers, customer pain points, strengths,
+    and actionable improvement opportunities.
+
+synthesize_strategy_task:
+  description: |
+    Synthesize ALL analyses into a comprehensive Market Intelligence Report for Indonesian sellers.
+    
+    Combine data from:
+    - Market Scan (structured JSON product data)
+    - Competitor Profiles (market gaps, pricing tiers)
+    - Review Mining (customer pain points, strengths)
+    - Store Profiling (top competitor store details)
+    
+    Generate a final report with:
+    
+    1. EXECUTIVE SUMMARY (Top 3 findings)
+    
+    2. MARKET OVERVIEW
+       Total products scanned, unique stores, price range, ads %
+       Competition level assessment for Indonesian market
+    
+    3. COMPETITIVE LANDSCAPE
+       Top 3-5 competitors with store profiles
+       Price tier distribution (Budget/Mid/Premium) in Rupiah
+       Ads presence - who is spending on advertising
+    
+    4. CUSTOMER INTELLIGENCE (from reviews)
+       Top 5 pain points = improvement opportunities
+       Top 5 strengths = what to match or exceed
+       Common customer requests (feature requests)
+    
+    5. GAP OPPORTUNITIES 
+       Specific niches ready for entry with data justification
+       Underserved price ranges with low competition
+    
+    6. KEYWORD STRATEGY
+       What search terms do top competitors use
+       Recommended keywords for your listings
+    
+    7. ACTIONABLE RECOMMENDATIONS
+       What product(s) to sell with estimated price range
+       What features to improve based on reviews
+       Differentiation strategy vs top competitors
+       Risk assessment for entering this market
+    
+    Format as professional markdown report with emoji headers (🟢🟡🔴),
+    tables, and clear sections. Write in Indonesian-friendly context.
+  expected_output: |
+    Comprehensive Market Intelligence Report in markdown with all 7 sections
+    and data-justified recommendations for Indonesian Shopee sellers.

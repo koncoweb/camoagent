@@ -92,6 +92,10 @@ class IconBar(QFrame):
         self.ads_btn.clicked.connect(lambda: self.icon_clicked.emit("ads"))
         layout.addWidget(self.ads_btn)
 
+        self.spy_btn = EmojiButton("🕵️", "Spy Agent - Market Research", self)
+        self.spy_btn.clicked.connect(lambda: self.icon_clicked.emit("spy"))
+        layout.addWidget(self.spy_btn)
+
         self.crew_btn = EmojiButton("🤖", "AI Crew", self)
         self.crew_btn.clicked.connect(lambda: self.icon_clicked.emit("crew"))
         layout.addWidget(self.crew_btn)
@@ -161,6 +165,10 @@ class MainWindow(QFrame):
         self.browser_manager = browser_manager
         self.crew_executor = crew_executor
 
+        self._spy_session_active = False
+        self._spy_browser_open = False
+        self._ads_session_active = False
+
         self.setWindowTitle("ShopeeAgent - AI Shopee Manager")
         self.setFixedSize(900, 650)
         self.setStyleSheet("background-color: #FFF5F0;")
@@ -187,9 +195,6 @@ class MainWindow(QFrame):
         self.analytics_panel = AnalyticsPanel()
         self.stacked_widget.addWidget(self.analytics_panel)
 
-        self.settings_panel = SettingsPanel()
-        self.stacked_widget.addWidget(self.settings_panel)
-
         main_layout.addWidget(self.stacked_widget, stretch=1)
 
         self.status_panel = StatusPanel()
@@ -201,14 +206,38 @@ class MainWindow(QFrame):
         self.crew_executor.status_update.connect(self.crew_panel.update_status)
         self.crew_executor.message_ready.connect(self.chat_widget.add_agent_message)
         
-        self.settings_panel.settings_changed.connect(self.on_settings_changed)
-        
         self.browser_manager.browser_ready.connect(lambda: self.status_panel.log_browser_event("Shopee Browser ready!"))
         self.browser_manager.error_occurred.connect(lambda e: self.status_panel.log_browser_event(f"Browser Error: {e}"))
         self.browser_manager.browser_closed.connect(lambda: self.status_panel.log_browser_event("Browser closed"))
 
     def on_icon_clicked(self, icon_name: str):
+        if icon_name == "settings":
+            self._open_settings_dialog()
+            return
+
+        if icon_name == "crew" or icon_name == "analytics":
+            self.status_panel.log_browser_event("Panel opened — chat session preserved")
+            if icon_name == "crew":
+                self.stacked_widget.setCurrentWidget(self.crew_panel)
+            else:
+                self.stacked_widget.setCurrentWidget(self.analytics_panel)
+            return
+
+        if self._spy_session_active and icon_name != "spy":
+            self.stacked_widget.setCurrentWidget(self.chat_widget)
+            self.status_panel.log_browser_event("🕵️ Returned to Spy Agent session")
+            return
+
+        if self._ads_session_active and icon_name not in ("ads", "browser"):
+            self.stacked_widget.setCurrentWidget(self.chat_widget)
+            self.status_panel.log_browser_event("📢 Returned to Ads session")
+            return
+
         if icon_name == "browser":
+            self._spy_session_active = False
+            self._ads_session_active = False
+            self.chat_widget.set_spy_mode(False)
+            self.chat_widget.clear_chat()
             self.browser_manager.launch_browser()
             self.status_panel.log_browser_event("Launching Shopee Seller Center...")
             self.stacked_widget.setCurrentWidget(self.chat_widget)
@@ -217,28 +246,97 @@ class MainWindow(QFrame):
                 self.status_panel.log_browser_event("⚠️ Please open the browser first by clicking 🛒 icon")
                 self.chat_widget.add_user_message("⚠️ Please open the browser first by clicking the 🛒 icon, then navigate to Shopee Ads dashboard manually.")
                 return
-            self.status_panel.log_browser_event("🔍 Starting Shopee Ads Analysis... (Make sure you're on the Shopee Ads page)")
+            self._spy_session_active = False
+            self._ads_session_active = True
+            self.chat_widget.set_spy_mode(False)
+            self.chat_widget.clear_chat()
+            self.status_panel.log_browser_event("🔍 Starting Shopee Ads Analysis...")
             self.stacked_widget.setCurrentWidget(self.chat_widget)
-            self.chat_widget.add_user_message("🔍 **Starting Shopee Ads Analysis...**\n\nPlease make sure you're on the Shopee Ads dashboard page.\n\nThe AI will extract data from the current page.")
+            self.chat_widget.add_user_message("🔍 **Starting Shopee Ads Analysis...**")
             self.crew_executor.execute_shopee_ads_task(
-                task_description="Analyze Shopee ads performance on the current page and provide optimization recommendations",
+                task_description="Analyze Shopee ads performance",
                 page=self.browser_manager.get_page()
             )
-        elif icon_name == "crew":
-            self.status_panel.log_browser_event("AI Crew Configuration opened")
-            self.stacked_widget.setCurrentWidget(self.crew_panel)
-        elif icon_name == "analytics":
-            self.status_panel.log_browser_event("Analytics Dashboard opened")
-            self.stacked_widget.setCurrentWidget(self.analytics_panel)
-        elif icon_name == "settings":
-            self.status_panel.log_browser_event("Settings opened")
-            self.stacked_widget.setCurrentWidget(self.settings_panel)
+        elif icon_name == "spy":
+            if self._spy_session_active:
+                self.stacked_widget.setCurrentWidget(self.chat_widget)
+                self.status_panel.log_browser_event("🕵️ Returned to Spy Agent session")
+                return
+            self._ads_session_active = False
+            self._handle_spy_agent_click()
 
     def on_settings_changed(self, settings: dict):
         self.crew_executor.update_settings(settings)
         self.status_panel.log_browser_event(f"Settings: Model={settings['model']}, MaxIter={settings['max_iter']}")
 
+    def _open_settings_dialog(self):
+        dialog = SettingsPanel(self)
+        dialog.settings_changed.connect(self.on_settings_changed)
+        dialog.exec()
+
+    def _handle_spy_agent_click(self):
+        if self.browser_manager.is_ready():
+            self.status_panel.log_browser_event("Closing existing browser for Spy Agent...")
+            self.browser_manager.close()
+
+        self._spy_session_active = True
+        self.status_panel.log_browser_event("🕵️ Launching Spy Agent - Shopee Marketplace...")
+        self.stacked_widget.setCurrentWidget(self.chat_widget)
+
+        self.chat_widget.clear_chat()
+        self.chat_widget.set_context_header("🕵️ Spy Agent - Market Research")
+        self.chat_widget.add_user_message(
+            "🕵️ **Spy Agent - Market Research**\n\n"
+            "**Langkah:**\n"
+            "1. Cari produk atau browse kategori di browser\n"
+            "2. Klik tombol aksi di atas untuk mulai analisis\n\n"
+            "_Spy Agent scan sebagai pembeli biasa — tidak perlu login._"
+        )
+
+        self.browser_manager.launch_browser(target_url="https://shopee.co.id")
+        self.chat_widget.set_spy_mode(True)
+
+    def _on_spy_action(self, action: str):
+        if action == "scan_market":
+            self.status_panel.log_browser_event("🕵️ Starting Market Scan...")
+            self.chat_widget.add_user_message("📡 **Scanning Shopee Marketplace...**\n\nExtracting all products with structured DOM extraction...")
+            self.crew_executor.execute_spy_task(
+                task_description="Use scan_shopee_market to extract ALL product data from the current search results. Use extract_structured=True for accurate JSON data.",
+                page=self.browser_manager.get_page()
+            )
+        elif action == "review_mine":
+            self.status_panel.log_browser_event("🕵️ Starting Review Mining...")
+            self.chat_widget.add_user_message("💬 **Mining Customer Reviews...**\n\nExtracting pain points & strengths from reviews...\n\nNavigate to a product page first, then click the button.")
+            self.crew_executor.execute_spy_task(
+                task_description="Navigate to a top-selling product page, click the Reviews tab, then use mine_product_reviews to extract customer sentiment. Identify pain points (1-2 stars) and strengths (4-5 stars).",
+                page=self.browser_manager.get_page()
+            )
+        elif action == "store_profile":
+            self.status_panel.log_browser_event("🕵️ Starting Store Profiling...")
+            self.chat_widget.add_user_message("🏪 **Analyzing Competitor Store...**\n\nExtracting store metrics, rating, followers, badges...\n\nNavigate to a store page first, then click the button.")
+            self.crew_executor.execute_spy_task(
+                task_description="Use profile_shopee_store on the current store page. Extract name, rating, followers, product count, badges, and official status. Then use scan_shopee_market to scan the store's products.",
+                page=self.browser_manager.get_page()
+            )
+        elif action == "full_report":
+            self.status_panel.log_browser_event("🕵️ Starting Full Market Intelligence...")
+            self.chat_widget.add_user_message("🎯 **Full Market Intelligence Report**\n\nRunning complete analysis pipeline:\n1. 📡 Market Scan\n2. 📊 Competitor Analysis\n3. 📈 Trend Detection\n4. 💬 Review Mining\n5. 🎯 Strategy Synthesis\n\nThis may take 5-8 minutes...")
+            self.crew_executor.execute_spy_task(
+                task_description="Run COMPLETE market intelligence: 1) scan_shopee_market for ALL products, 2) analyze_market_gaps for opportunities, 3) Navigate to top 3 competitor product pages and mine_product_reviews, 4) Generate comprehensive strategy report with Executive Summary, Competitor Landscape, Gap Opportunities, Customer Pain Points, Keyword Recommendations, Pricing Strategy, and Risk Assessment.",
+                page=self.browser_manager.get_page()
+            )
+        elif action == "":
+            pass
+
     def on_chat_message(self, message: str):
+        if message == "__SPY_START__":
+            self._on_spy_action("full_report")
+            return
+        if message.startswith("__SPY_ACTION__:"):
+            action = message.split("__SPY_ACTION__:")[1]
+            self._on_spy_action(action)
+            return
+
         self.chat_widget.add_user_message(message)
         self.status_panel.log_browser_event(f"You: {message[:50]}...")
         self.crew_executor.execute_task(message, self.browser_manager.get_page())
@@ -250,6 +348,9 @@ class ChatWidget(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._spy_mode = False
+        self._spy_start_btn = None
+        self._chat_header_label = None
         self.setStyleSheet("""
             QFrame {
                 background-color: #FFFFFF;
@@ -276,6 +377,59 @@ class ChatWidget(QFrame):
         """)
         header.setFixedHeight(48)
         layout.addWidget(header)
+
+        self._chat_header_label = QLabel("")
+        self._chat_header_label.setStyleSheet("""
+            QLabel {
+                background-color: #28A745;
+                color: white;
+                padding: 6px 16px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+        """)
+        self._chat_header_label.setFixedHeight(0)
+        self._chat_header_label.hide()
+        layout.addWidget(self._chat_header_label)
+
+        # SpyAgent Action Bar
+        self._spy_action_bar = QWidget()
+        self._spy_action_bar.setStyleSheet("background-color: #F0FFF0; border-bottom: 2px solid #28A745;")
+        spy_action_layout = QHBoxLayout(self._spy_action_bar)
+        spy_action_layout.setContentsMargins(8, 6, 8, 6)
+        spy_action_layout.setSpacing(6)
+
+        actions = [
+            ("📡 Scan", "scan_market", "#28A745", "Extract product data from current search"),
+            ("💬 Reviews", "review_mine", "#17A2B8", "Mine customer reviews for insights"),
+            ("🏪 Store", "store_profile", "#6F42C1", "Profile competitor store"),
+            ("🎯 Full Report", "full_report", "#EE4D2D", "Complete market intelligence report"),
+        ]
+
+        for label, action_id, color, tooltip in actions:
+            btn = QPushButton(f" {label} ")
+            btn.setToolTip(tooltip)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {color};
+                    color: white;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 6px 14px;
+                    font-size: 11px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #333333;
+                }}
+            """)
+            btn.clicked.connect(lambda checked, a=action_id: self.send_message.emit(f"__SPY_ACTION__:{a}"))
+            spy_action_layout.addWidget(btn)
+
+        spy_action_layout.addStretch()
+        self._spy_action_bar.hide()
+        layout.addWidget(self._spy_action_bar)
 
         self.chat_area = QScrollArea()
         self.chat_area.setWidgetResizable(True)
@@ -490,3 +644,60 @@ class ChatWidget(QFrame):
         msg_widget.setFixedWidth(440)
         
         self.chat_layout.addWidget(msg_widget, 0, Qt.AlignmentFlag.AlignLeft)
+
+    def set_spy_mode(self, active: bool):
+        if active:
+            self._spy_mode = True
+            self._spy_action_bar.show()
+            self.message_input.setPlaceholderText("Type command or use action buttons above...")
+            if hasattr(self, '_spy_start_btn') and self._spy_start_btn:
+                pass
+            else:
+                self._spy_start_btn = QPushButton("🔍 Start Analysis")
+                self._spy_start_btn.setFixedSize(150, 42)
+                self._spy_start_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+                self._spy_start_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #28A745;
+                        color: white;
+                        border: none;
+                        border-radius: 20px;
+                        font-weight: bold;
+                        font-size: 13px;
+                    }
+                    QPushButton:hover {
+                        background-color: #34D058;
+                    }
+                """)
+                self._spy_start_btn.clicked.connect(self._on_spy_start)
+            parent_layout = self.message_input.parent()
+            if parent_layout and self._spy_start_btn not in [parent_layout.itemAt(i).widget() for i in range(parent_layout.count())]:
+                insert_idx = parent_layout.count() - 1
+                parent_layout.insertWidget(insert_idx, self._spy_start_btn)
+        else:
+            self._spy_mode = False
+            self._spy_action_bar.hide()
+            self.message_input.setPlaceholderText("Type your command for Shopee...")
+            if hasattr(self, '_spy_start_btn') and self._spy_start_btn:
+                self._spy_start_btn.setParent(None)
+                self._spy_start_btn.deleteLater()
+                self._spy_start_btn = None
+            if hasattr(self, '_chat_header_label') and self._chat_header_label:
+                self._chat_header_label.setText("")
+                self._chat_header_label.setFixedHeight(0)
+                self._chat_header_label.hide()
+
+    def _on_spy_start(self):
+        self.send_message.emit("__SPY_START__")
+
+    def clear_chat(self):
+        while self.chat_layout.count():
+            item = self.chat_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    def set_context_header(self, text: str):
+        if hasattr(self, '_chat_header_label') and self._chat_header_label:
+            self._chat_header_label.setText(f"  {text}")
+            self._chat_header_label.setFixedHeight(28)
+            self._chat_header_label.show()

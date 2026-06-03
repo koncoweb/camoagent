@@ -1,52 +1,107 @@
-# Environment files (contain API keys)
+# ═══════════════════════════════════════════════════════════
+# ShopeeAgent — Git Ignore Rules
+# ═══════════════════════════════════════════════════════════
+
+# Secrets & Environment (JANGAN PERNAH COMMIT)
 .env
 .env.local
-.env.*.local
+.env.production
+*.key
+*.pem
+*.p12
 
-# Python
+# API keys & credentials
+*_api_key*
+*_API_KEY*
+*credentials*
+
+# ═══════════════════════════════════════
+# BUILD OUTPUT — PyInstaller & NSIS
+# ═══════════════════════════════════════
+dist/
+build/
+ShopeeAgent-Setup.exe
+*.exe
+
+# ═══════════════════════════════════════
+# PYTHON — Cache & compiled
+# ═══════════════════════════════════════
 __pycache__/
 *.py[cod]
-*$py.class
+*.pyo
+*.pyd
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
 *.egg
+*.egg-info/
+*.whl
 
 # Virtual environments
 venv/
-ENV/
 env/
 .venv/
+.env/
 
-# IDE
+# ═══════════════════════════════════════
+# RUNTIME DATA
+# ═══════════════════════════════════════
+# Browser session (contains login cookies — VERY SENSITIVE)
+.shopee_session
+*.session
+*_session*
+
+# Logs
+*.log
+log/
+logs/
+*.log.*
+
+# ═══════════════════════════════════════
+# IDE & EDITOR
+# ═══════════════════════════════════════
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-logs/
+# ═══════════════════════════════════════
+# OS GENERATED
+# ═══════════════════════════════════════
+desktop.ini
+$RECYCLE.BIN/
 
-# Temporary files
+# ═══════════════════════════════════════
+# FILE YANG TIDAK PERLU DICOMMIT
+# ═══════════════════════════════════════
+# Test & debugging scripts
+test_*.py
+debug_*.py
+scratch_*.py
+
+# Temp files
 *.tmp
+*.temp
 *.bak
-*.cache
+*.backup
+
+# Config editor backup
+*.yaml.bak
+*.yml.bak
+*.spec.bak
+*.nsi.bak
+
+# ═══════════════════════════════════════
+# YANG TETAP DILACAK (WHITELIST)
+# Dokumentasi, source code, config, build script:
+# ✅ *.md          — All markdown documentation
+# ✅ *.py          — Source code
+# ✅ *.yaml        — Agent & task config
+# ✅ *.txt         — requirements.txt, guide
+# ✅ *.bat         — Build scripts
+# ✅ *.ps1         — PowerShell scripts
+# ✅ *.spec        — PyInstaller spec
+# ✅ *.nsi         — NSIS installer script
+# ✅ *.png / *.ico — App icons
+# ═══════════════════════════════════════

@@ -174,3 +174,66 @@ class CrewExecutor(QObject):
         with self._lock:
             self._active_threads.clear()
         self._running = False
+
+    def execute_spy_task(self, task_description: str = None, page=None):
+        self.set_page(page)
+
+        def run_spy_crew():
+            thread_id = threading.current_thread().ident
+            try:
+                with self._lock:
+                    self._active_threads.append(thread_id)
+                    current_settings = self.crew_settings.copy()
+
+                from crews.spy_crew import SpyCrew
+
+                self._safe_emit_status("Spy Crew", "working")
+                self._safe_emit_message(
+                    "🕵️ **Spy Agent - Market Research**\n\n"
+                    "Scanning Shopee marketplace products...\n"
+                    "This may take 2-5 minutes depending on page count.\n\n"
+                    "⚙️ Process:\n"
+                    "1. 📡 Market Scanner - extracting product data\n"
+                    "2. 📊 Competitor Profiler - analyzing competitors\n"
+                    "3. 📈 Trend Detector - finding opportunities\n"
+                    "4. 🎯 Strategy Synthesizer - generating report"
+                )
+
+                crew_instance = SpyCrew(
+                    provider=current_settings.get("provider", "SumoPod AI"),
+                    memory=current_settings.get("memory", False),
+                    planning=current_settings.get("planning", False),
+                    model=current_settings.get("model", "MiniMax-M2.7-highspeed"),
+                    max_iter=current_settings.get("max_iter", 15),
+                    sumpod_api_key=current_settings.get("sumpod_api_key"),
+                    openai_api_key=current_settings.get("openai_api_key")
+                )
+
+                if task_description:
+                    result = crew_instance.kickoff(task_override=task_description)
+                else:
+                    result = crew_instance.kickoff()
+
+                self._safe_emit_status("Spy Crew", "ready")
+                self._safe_emit_message(f"## 🕵️ Market Intelligence Report\n\n{str(result.raw)}")
+
+            except Exception as e:
+                error_msg = str(e)
+                tb_str = traceback.format_exc()
+
+                self._safe_emit_status("Spy Crew", "error")
+
+                if "insufficient_quota" in error_msg:
+                    friendly_msg = "Error: Kuota AI Provider habis. Silakan cek saldo di SumoPod/OpenAI."
+                elif "API key" in error_msg.lower() or "auth" in error_msg.lower():
+                    friendly_msg = "Error: Masalah autentikasi API. Pastikan SUMOPOD_API_KEY sudah diatur di .env"
+                else:
+                    friendly_msg = f"Error:\n{error_msg}"
+                self._safe_emit_message(friendly_msg)
+            finally:
+                with self._lock:
+                    if thread_id in self._active_threads:
+                        self._active_threads.remove(thread_id)
+
+        thread = threading.Thread(target=run_spy_crew, daemon=True)
+        thread.start()

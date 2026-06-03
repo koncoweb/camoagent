@@ -77,9 +77,29 @@ try:
         def __init__(self, argv):
             super().__init__(argv)
             self.setApplicationName("ShopeeAgent")
-            self.setApplicationVersion("1.0.0")
+            self.setApplicationVersion("1.2.0")
             
             logger.info("Initializing ShopeeAgentApp...")
+            
+            self.setStyleSheet("""
+                QToolTip {
+                    color: #1A1A1A;
+                    background-color: #FFF8E1;
+                    border: 1px solid #EE4D2D;
+                    padding: 6px 10px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-family: 'Segoe UI';
+                }
+                QMessageBox {
+                    color: #1A1A1A;
+                    background-color: #FFFFFF;
+                }
+                QMessageBox QLabel {
+                    color: #1A1A1A;
+                    font-size: 13px;
+                }
+            """)
             
             try:
                 self.browser_manager = BrowserManager()

@@ -1,110 +1,116 @@
-Saat ini saya sedang mengembangkan sistem AI Agent menggunakan CrewAI dan Camoufox. Agen saya sudah berhasil membuka browser secara otonom melalui Camoufox. Sekarang, saya ingin kamu memperbarui kode CrewAI dan logika Custom Tools-nya untuk mereplikasi fitur analisis dari ekstensi Chrome "Auto Ads Shopee".
+# ShopeeAgent v1.2.0 — Panduan Developer
 
-Tolong integrasikan fitur dan logika berikut ke dalam alur CrewAI saya saat ini. Fokus pada penulisan logika alat (tools) ekstraksi data, kalkulasi matematis, dan pembaruan Agent/Task definitions.
+## Ringkasan Perubahan Terbaru
 
-1. Pembaruan Logika Custom Tool (Camoufox Data Extraction)
-Buat/perbarui custom tool Camoufox bernama extract_shopee_ads_metrics. Tool ini bertugas untuk:
+### v1.2.0 (2025-06-04): SpyAgent v2.0 + UX Improvements
 
-Mengekstrak data dari dashboard iklan Shopee. Data yang wajib diambil untuk setiap baris kampanye/produk: Nama Produk, Biaya Iklan (Shopee Cost), Omset Penjualan (GMV), Jumlah Klik, dan Tingkat Konversi (CR).
+**SpyAgent v2.0 — Market Intelligence untuk Penjual Indonesia:**
+- Structured DOM extraction (16 field, clean JSON — tidak perlu LLM parsing)
+- ReviewMinerTool: Baca ulasan pelanggan, deteksi pain points & strengths
+- StoreProfilerTool: Profil toko lengkap (rating, followers, badges)
+- GapAnalyzeTool: Deteksi niche dengan demand tinggi, supply rendah
+- KeywordExtractorTool: Intelijen keyword dari judul produk kompetitor
+- SpyAgent Action Bar: 4 tombol aksi di atas chat
+- Memory + Planning enabled untuk analisis lebih dalam
 
-Output dari tool ini harus berupa struktur JSON array yang rapi.
-(Catatan untuk AI: Karena struktur DOM Shopee bisa berubah, berikan saya struktur dasar playwirght/camoufox scrapingnya, dan asumsikan saya sudah memiliki selector yang benar)
+**UX Improvements:**
+- Settings sebagai dialog terpisah — chat di belakang tetap utuh
+- API key auto-save ke .env — persisten antar restart
+- Navigasi session-aware — chat tidak pernah clear tidak sengaja
+- Tooltip dan modal text hitam — akhirnya terbaca
+- Browser timeout fix untuk shopee.co.id
 
-2. Penambahan Alat Kalkulasi Finansial (Local Tool)
-Buat sebuah Python function atau custom tool baru bernama calculate_actual_financials yang memproses JSON dari tool pertama. Gunakan formula matematis ini:
+### v1.1.0 (2025-06-01): SpyAgent v1.0 + Chat Separation
 
-Input Data Eksternal (Mock data saja di kode): HPP Produk, Biaya Operasional, dan Potongan Admin Kategori Shopee (dalam %).
+- SpyAgent v1.0 initial release
+- Chat separation: clear chat + context header saat switch agent
+- Browser locale Indonesia (id-ID)
 
-Formula yang wajib ada dalam fungsi ini:
+### v1.0.0 (2025-06-01): Initial Release
 
-Actual Cost = Shopee Cost * 1.11 (Menambahkan PPN iklan 11%).
-
-Actual ROAS = GMV / Actual Cost.
-
-Profit Bersih per Produk = Harga Jual - HPP - (Persentase Admin * Harga Jual) - Biaya Operasional.
-
-Break-Even ROAS = Harga Jual / Profit Bersih per Produk.
-
-Max CPC (Target Bid Maksimal) = Profit Bersih per Produk * Tingkat Konversi (CR).
-
-Fungsi ini harus menambahkan field Actual Cost, Actual ROAS, Break-Even ROAS, dan Max CPC ke dalam setiap baris JSON produk.
-
-3. Pembaruan Definisi Agent & Task di CrewAI
-Tolong tuliskan ulang definisi Agent dan Task menggunakan spesifikasi berikut:
-
-Agent 1: Data Extractor Agent
-Role: Shopee Dashboard Navigator.
-
-Goal: Menjalankan Camoufox, membaca tabel metrik iklan, dan mengembalikannya dalam format JSON yang bersih.
-
-Tools: extract_shopee_ads_metrics.
-
-Agent 2: Financial Analyst Agent
-Role: E-commerce Financial Analyst.
-
-Goal: Menerima JSON mentah, menghitung PPN 11%, Break-Even ROAS, dan Max CPC, lalu mengklasifikasikan performa (Bagus/Cukup/Rugi).
-
-Tools: calculate_actual_financials.
-
-Aturan Klasifikasi:
-
-Jika Actual ROAS > Target ROAS (asumsikan target = 5.0) = Bagus.
-
-Jika Actual ROAS < Target ROAS TAPI Actual ROAS > Break-Even ROAS = Cukup.
-
-Jika Actual ROAS < Break-Even ROAS = Rugi (Boncos).
-
-Agent 3: Ads Optimization Agent
-Role: PPC Strategist.
-
-Goal: Menganalisis laporan finansial dan mengeluarkan rekomendasi tindakan untuk mengoptimasi iklan.
-
-Aturan Rekomendasi:
-
-Jika "Rugi": Rekomendasikan "Turunkan Bid ke angka Max CPC atau Pause".
-
-Jika "Cukup": Rekomendasikan "Pertahankan Bid".
-
-Jika "Bagus": Rekomendasikan "Naikkan Bid 5%".
-
-4. Output Terakhir (Orkestrasi)
-Tolong pastikan Process dalam Crew berjalan berurutan (Sequential). Output akhir dari Crew harus berupa tabel Markdown ringkasan yang mencantumkan nama produk, ROAS Aktual, Break-Even ROAS, status performa, dan rekomendasi perubahan Bid.
-
-Tolong berikan saya update kodenya sekarang, pisahkan antara fungsi Custom Tools dan kode utama CrewAI-nya.
+- Full ShopeeAgent branding
+- Ads Management dengan 3 agen
+- Session persistence auto-save
+- NSIS installer
 
 ---
 
-## ✅ IMPLEMENTATION COMPLETED
+## Arsitektur Agent (7 Agents Total)
 
-Semua fitur telah diimplementasikan:
+### Ads Crew (3 agents — sequential)
+```
+ShopeeNavigator → FinancialAnalyst → AdsOptimizer
+```
+Tools: 11 browser tools + 3 ads tools
 
-### Files Created:
-1. `tools/shopee_tools.py` - Custom tools untuk Shopee
-2. `crews/shopee_crew.py` - Shopee Crew dengan sequential process
-3. `config/shopee_agents.yaml` - Agent definitions
-4. `config/shopee_tasks.yaml` - Task definitions
-
-### Files Modified:
-1. `services/crew_executor.py` - Added `execute_shopee_ads_task()` method
-2. `ui/main_window.py` - Added 📢 Shopee Ads button
-3. `CHANGELOG.md` - Updated with new features
-4. `requirement.md` - Updated with new features
+### Spy Crew (4 agents — sequential, memory+planning enabled)
+```
+MarketScanner → CompetitorProfiler → TrendDetector → StrategySynthesizer
+```
+Tools: 11 browser tools + 5 spy tools (MarketScanTool, ReviewMinerTool, StoreProfilerTool, GapAnalyzeTool, KeywordExtractorTool)
 
 ---
 
-## 🔐 Session Persistence (Implemented)
+## SpyAgent Action Bar
 
-Fitur session persistence telah ditambahkan untuk menghindari login ulang setiap kali:
+4 tombol aksi di atas chat saat spy mode active:
 
-1. **File Session**: `.shopee_session` (JSON format)
-2. **Storage State**: Camoufox menggunakan `storage_state` dari Playwright
-3. **SaveSessionTool**: Agent bisa menyimpan session via tool
+| Tombol | Warna | Aksi | Deskripsi |
+|--------|-------|------|-----------|
+| 📡 Scan | Hijau | `scan_market` | Scan produk dari halaman saat ini |
+| 💬 Reviews | Biru | `review_mine` | Mining ulasan produk |
+| 🏪 Store | Ungu | `store_profile` | Profiling toko kompetitor |
+| 🎯 Full Report | Merah | `full_report` | Pipeline lengkap: scan → analisis → report |
 
-### Cara Kerja:
-- **Run Pertama**: Browser terbuka tanpa session → User login manual → Session disimpan otomatis
-- **Run Berikutnya**: Browser terbuka dengan session tersimpan → Langsung logged in
+---
 
-### Penting:
-- Jangan re-login setiap run → Shopee akan trigger OTP atau block akun
-- Session tersimpan di `.shopee_session` file
-- Hapus file `.shopee_session` untuk reset session
+## Navigasi yang Aman
+
+| State Saat Ini | Klik | Hasil |
+|---------------|------|-------|
+| Spy active | ⚙️ Settings | Dialog muncul di atas — chat preserved |
+| Spy active | 🤖 Crew | Panel crew — chat preserved |
+| Spy active | 📊 Analytics | Panel analytics — chat preserved |
+| Spy active | 🛒 Browser | Diblokir — return ke spy chat |
+| Spy active | 📢 Ads | Diblokir — return ke spy chat |
+| Ads active | 🕵️ Spy | Switch ke SpyAgent |
+| Ads active | ⚙️ Settings | Dialog — chat preserved |
+| Browser | 🕵️ Spy | Launch spy browser baru |
+
+---
+
+## Build Process
+
+```powershell
+# 1. PyInstaller build
+python -m PyInstaller shopeeagent.spec --noconfirm
+
+# 2. Copy data files (535+ files)
+powershell -ExecutionPolicy Bypass -File copy_all_data.ps1
+
+# 3. NSIS installer
+& "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+```
+
+Output: `ShopeeAgent-Setup.exe` (~204 MB)
+
+---
+
+## Settings Persistence
+
+API key yang dimasukkan di Settings dialog auto-save ke `.env` file:
+- `SUMOPOD_API_KEY`
+- `OPENAI_API_KEY`  
+- `SUMOPOD_BASE_URL`
+- `OPENAI_BASE_URL`
+
+Setting lain (provider, model, max_iter, memory, planning) di-save via signal ke CrewExecutor.
+
+---
+
+## Referensi
+
+- [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) — 11 error pattern dengan fix permanen
+- [CHANGELOG.md](CHANGELOG.md) — Riwayat perubahan lengkap
+- [requirement.md](requirement.md) — Spesifikasi requirement
+- [README.md](README.md) — User-facing documentation
