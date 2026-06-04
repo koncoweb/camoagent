@@ -399,7 +399,7 @@ Before declaring "build complete", verify:
 
 ## 🚀 VERSIONING
 
-Current version: **v1.3.1**
+Current version: **v1.3.2**
 
 Files to update when bumping version:
 1. `camoagent.py` → `self.setApplicationVersion("X.Y.Z")`

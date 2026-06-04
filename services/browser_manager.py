@@ -3,7 +3,7 @@ import time
 import traceback
 import os
 from typing import Optional, Any
-from PyQt6.QtCore import QObject, pyqtSignal, QMetaObject, Qt, Q_ARG
+from PyQt6.QtCore import QObject, pyqtSignal
 
 
 class BrowserManager(QObject):
@@ -53,30 +53,23 @@ class BrowserManager(QObject):
             return False
 
     def _safe_emit_ready(self):
+        """Emit browser_ready from ANY thread — PyQt auto-queues cross-thread."""
         try:
-            QMetaObject.invokeMethod(
-                self, "browser_ready",
-                Qt.ConnectionType.QueuedConnection
-            )
+            self.browser_ready.emit()
         except Exception:
             pass
 
     def _safe_emit_closed(self):
+        """Emit browser_closed from ANY thread."""
         try:
-            QMetaObject.invokeMethod(
-                self, "browser_closed",
-                Qt.ConnectionType.QueuedConnection
-            )
+            self.browser_closed.emit()
         except Exception:
             pass
 
     def _safe_emit_error(self, error: str):
+        """Emit error_occurred from ANY thread."""
         try:
-            QMetaObject.invokeMethod(
-                self, "error_occurred",
-                Qt.ConnectionType.QueuedConnection,
-                Q_ARG(str, error)
-            )
+            self.error_occurred.emit(error)
         except Exception:
             pass
 
@@ -282,7 +275,6 @@ class BrowserManager(QObject):
                 if self._page is not None and self._page.context is not None:
                     session_path = self.get_session_path()
                     self._page.context.storage_state(path=session_path)
-                    self._safe_emit_ready()
             except Exception:
                 pass
             
@@ -291,6 +283,7 @@ class BrowserManager(QObject):
             self._browser = None
             self._page = None
             self._running = False
+            self._thread = None
             self._safe_emit_closed()
 
     def get_page(self) -> Optional[Any]:

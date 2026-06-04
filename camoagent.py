@@ -77,7 +77,7 @@ try:
         def __init__(self, argv):
             super().__init__(argv)
             self.setApplicationName("ShopeeAgent")
-            self.setApplicationVersion("1.3.1")
+            self.setApplicationVersion("1.3.2")
             
             logger.info("Initializing ShopeeAgentApp...")
             

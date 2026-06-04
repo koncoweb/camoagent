@@ -251,7 +251,7 @@ class MainWindow(QFrame):
         self._spy_category = None   # selected Shopee product category
         self._loading = False       # whether agent is currently executing
 
-        self.setWindowTitle("ShopeeAgent v1.3.1")
+        self.setWindowTitle("ShopeeAgent v1.3.2")
         self.setFixedSize(900, 650)
         self.setStyleSheet(f"background-color: {PAGE_BG};")
 

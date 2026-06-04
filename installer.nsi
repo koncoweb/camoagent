@@ -12,13 +12,13 @@ InstallDirRegKey HKLM "Software\ShopeeAgent" "Install_Dir"
 RequestExecutionLevel admin
 
 ; Version Info
-VIProductVersion "1.3.1.0"
+VIProductVersion "1.3.2.0"
 VIAddVersionKey "ProductName" "ShopeeAgent"
 VIAddVersionKey "CompanyName" "ShopeeAgent"
 VIAddVersionKey "LegalCopyright" "Copyright 2025"
 VIAddVersionKey "FileDescription" "ShopeeAgent - AI Shopee Manager"
-VIAddVersionKey "FileVersion" "1.3.1"
-VIAddVersionKey "ProductVersion" "1.3.1"
+VIAddVersionKey "FileVersion" "1.3.2"
+VIAddVersionKey "ProductVersion" "1.3.2"
 
 ; Interface Settings
 !define MUI_ABORTWARNING
@@ -80,7 +80,7 @@ Section "Install"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ShopeeAgent" "UninstallString" "$INSTDIR\Uninstall.exe"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ShopeeAgent" "InstallLocation" "$INSTDIR"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ShopeeAgent" "Publisher" "ShopeeAgent"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ShopeeAgent" "DisplayVersion" "1.3.1"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ShopeeAgent" "DisplayVersion" "1.3.2"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ShopeeAgent" "DisplayIcon" "$INSTDIR\ShopeeAgent.exe"
     
     ; Get installed size

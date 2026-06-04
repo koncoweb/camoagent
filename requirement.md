@@ -1,7 +1,7 @@
 # ShopeeAgent - Project Requirements
 
 ## Overview
-**ShopeeAgent v1.3.1** is a Desktop GUI application built with PyQt6 that integrates a stealth browser (Camoufox/Playwright) with a multi-agent AI system (CrewAI) for Shopee store management, ads optimization, and **market intelligence & competitor analysis**.
+**ShopeeAgent v1.3.2** is a Desktop GUI application built with PyQt6 that integrates a stealth browser (Camoufox/Playwright) with a multi-agent AI system (CrewAI) for Shopee store management, ads optimization, and **market intelligence & competitor analysis**.
 
 ## Core Dependencies
 | Package | Purpose |

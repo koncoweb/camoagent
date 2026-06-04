@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2025-06-04
+
+### Fixed
+- **Browser signals broken across threads**: `QMetaObject.invokeMethod()` replaced with `signal.emit()` in **both** `crew_executor.py` AND `browser_manager.py`. All 6 cross-thread signals now work correctly: `status_update`, `message_ready`, `browser_ready`, `browser_closed`, `error_occurred`.
+- **Browser launch silent failure**: Browser icon (🌐) was affected by same `QMetaObject.invokeMethod` bug — browser launched but UI never showed "connected" state, loading indicator never appeared, error handling never fired.
+- **`finally` block cleanup**: Removed spurious `_safe_emit_ready()` from browser shutdown path; added `self._thread = None` after thread join.
+
+---
+
 ## [1.3.1] - 2025-06-04
 
 ### Fixed

@@ -1,6 +1,11 @@
-# ShopeeAgent v1.3.1 — Panduan Developer
+# ShopeeAgent v1.3.2 — Panduan Developer
 
 ## Ringkasan Perubahan Terbaru
+
+### v1.3.2 (2025-06-04): Critical Bug Fix — Browser Signals
+- **QMetaObject.invokeMethod → signal.emit()**: BrowserManager juga pakai pattern yang salah — 3 signal browser tidak pernah emit di build. Fixed: `browser_ready.emit()`, `browser_closed.emit()`, `error_occurred.emit()`
+- **Browser silent failure fix**: Browser icon sekarang berfungsi penuh — status "Connected", loading indicator, error handling
+- **Thread cleanup**: `finally` block sekarang set `_thread = None`, tidak lagi emit `browser_ready` saat shutdown
 
 ### v1.3.1 (2025-06-04): Bug Fixes & Stability
 - **Spy agent tidak terblokir saat ads session**: `"spy"` ditambahkan ke allowed icons saat `_ads_session_active`
