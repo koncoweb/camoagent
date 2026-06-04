@@ -100,12 +100,12 @@ PyInstaller on Windows **requires `.ico` format** for the `icon=` parameter. `.p
 # shopeeagent.spec — ✅ CORRECT
 exe = EXE(
     ...,
-    icon='logoicon-removebg-preview.ico',  # .ico NOT .png
+    icon='shopeeagentcrop.ico',  # .ico NOT .png
 )
 
 # installer.nsi — ✅ CORRECT
-!define MUI_ICON "logoicon-removebg-preview.ico"
-!define MUI_UNICON "logoicon-removebg-preview.ico"
+!define MUI_ICON "shopeeagentcrop.ico"
+!define MUI_UNICON "shopeeagentcrop.ico"
 ```
 
 ### DO NOT
@@ -388,15 +388,275 @@ Before declaring "build complete", verify:
 | `config/spy_tasks.yaml` | SpyAgent task definitions | 4 tasks |
 | `config/shopee_agents.yaml` | Ads agent definitions | 3 agents |
 | `config/shopee_tasks.yaml` | Ads task definitions | 3 tasks |
+| `copy_all_data.ps1` | Post-build data copier | 535 files from 7 packages |
+| `shopeeagent.md` | Developer changelog (ID) | 7 critical lessons, architecture, navigation |
+| `DEVELOPER_GUIDE.md` | This file | 17 error patterns + build checklist |
+| `CHANGELOG.md` | Release changelog (EN) | Structured by version |
+| `requirement.md` | Project requirements | Full feature specification |
+| `README.md` | User-facing README | Features, quick start |
 
 ---
 
 ## 🚀 VERSIONING
 
-Current version: **v1.2.0**
+Current version: **v1.3.1**
 
 Files to update when bumping version:
 1. `camoagent.py` → `self.setApplicationVersion("X.Y.Z")`
 2. `installer.nsi` → `VIAddVersionKey "FileVersion" "X.Y.Z"`
 3. `installer.nsi` → `VIAddVersionKey "ProductVersion" "X.Y.Z"`
 4. `installer.nsi` → `WriteRegStr ... "DisplayVersion" "X.Y.Z"`
+5. `ui/main_window.py` → `self.setWindowTitle("ShopeeAgent vX.Y.Z")`
+6. `README.md` → `# ShopeeAgent vX.Y.Z`
+7. `requirement.md` → `**ShopeeAgent vX.Y.Z**`
+8. `CHANGELOG.md` → `## [X.Y.Z] - YYYY-MM-DD`
+9. `DEVELOPER_GUIDE.md` → `Current version: **vX.Y.Z**`
+10. `shopeeagent.md` → `# ShopeeAgent vX.Y.Z`
+11. `ShopeeAgent-Setup-README.txt` → `SHOPEAGENT vX.Y.Z`
+
+---
+
+## 📦 DISTRIBUTION
+
+Single-file distribution: **`ShopeeAgent-Setup.exe`** (~213 MB) is all you need.
+
+- NSIS compiles ALL files (EXE, DLLs, 535+ data files, icon) into one self-contained installer
+- No external dependencies — user does NOT need Python, pip, or any runtime
+- Installer creates `.env` template and `README_FIRST.txt` at install location
+- Uninstaller included and registered in Windows Control Panel
+
+---
+
+## 🔴 ERROR 12: Chat Bubbles — Text Always Truncated
+
+### Symptom
+Agent messages selalu terpotong. User hanya melihat 2-3 baris pertama, sisanya hilang.
+
+### Root Cause
+```python
+# ❌ WRONG — height dihitung SEBELUM widget dirender
+doc = msg_widget.document()
+doc.setTextWidth(410)
+height = int(doc.size().height()) + 28  # doc.size() return 0 atau nilai stale
+msg_widget.setFixedHeight(height)
+```
+
+`QTextEdit.document().size().height()` tidak akurat sebelum widget dirender oleh layout manager Qt. Hasilnya: tinggi 28px (margin saja) atau wildly inaccurate → teks terpotong.
+
+### Fix
+```python
+# ✅ CORRECT — SelfSizingTextEdit subclass
+class SelfSizingTextEdit(QTextEdit):
+    def sizeHint(self) -> QSize:
+        doc = self.document()
+        doc.setTextWidth(self._text_width)
+        width = max(self._text_width + 20, int(doc.idealWidth()) + 10)
+        height = int(doc.size().height()) + self._margin
+        return QSize(width, height)
+    
+    def _on_content(self):
+        self.updateGeometry()  # trigger re-layout setiap konten berubah
+```
+
+`sizeHint()` dipanggil Qt saat layout perlu ukuran — nilainya selalu dinamis dari `document.size()` terbaru.
+
+### Also Fixed (same bug, user bubbles)
+```python
+# ❌ WRONG — QLabel langsung di chat_layout dengan AlignRight
+# Tidak ada konteks lebar → word wrap tidak bekerja
+chat_layout.addWidget(bubble, 0, Qt.AlignmentFlag.AlignRight)
+
+# ✅ CORRECT — container dengan stretch
+container_layout.addStretch()  # dorong bubble ke kanan
+container_layout.addWidget(bubble)  # bubble dapat lebar penuh dari chat_layout
+```
+
+---
+
+## 🔴 ERROR 13: Loading Indicator Never Appears
+
+### Symptom
+Log menunjukkan "Spy Crew working" tapi loading spinner tidak muncul di chat. Tidak ada error.
+
+### Root Cause
+```python
+# ❌ WRONG — QMetaObject.invokeMethod CANNOT emit pyqtSignal
+def _safe_emit_status(self, agent: str, status: str):
+    QMetaObject.invokeMethod(
+        self, "status_update",        # ← ini nama signal, bukan method
+        Qt.ConnectionType.QueuedConnection,
+        Q_ARG(str, agent),
+        Q_ARG(str, status)
+    )
+```
+
+`QMetaObject.invokeMethod()` hanya bisa memanggil **method** / **slot**. Signal bukan method — signal di PyQt6 hanya bisa di-emit via `.emit()`. Exception dari invokeMethod di-swallow oleh `except Exception: pass` → silent failure.
+
+### Fix
+```python
+# ✅ CORRECT — signal.emit() dari worker thread
+# PyQt auto-queues cross-thread signals (Qt.QueuedConnection is default for signals)
+def _safe_emit_status(self, agent: str, status: str):
+    try:
+        self.status_update.emit(agent, status)
+    except Exception:
+        pass
+```
+
+### Related: Loading Indicator Scrolls Away
+`LoadingWidget` sebelumnya di dalam `chat_layout` (scrollable). Saat chat baru muncul dan auto-scroll ke bawah, indicator ikut ter-scroll keluar viewport → user tidak lihat.
+
+**Fix**: Pindahkan `LoadingWidget` ke LAYOUT UTAMA `ChatWidget` — antara action bar dan QScrollArea. Posisinya tetap, tidak terpengaruh scroll.
+
+---
+
+## 🔴 ERROR 14: Spy Browser Not Launching After Ads Session
+
+### Symptom
+Sequence: Browser 🌐 → Ads 📢 agent running → click Spy 🕵️ → **browser tidak terbuka**. Tidak ada error log.
+
+### Root Cause #1 — Session Guard Blocking
+```python
+# ❌ WRONG — spy tidak diizinkan saat ads session
+if self._ads_session_active and icon_name not in ("ads", "browser"):
+    return  # ← "spy" diblokir, tidak pernah sampai ke _handle_spy_agent_click
+```
+
+### Root Cause #2 — Thread Deadlock
+```python
+# ❌ WRONG — launch_browser silent return
+def launch_browser(self, ...):
+    if self._thread is not None and self._thread.is_alive():
+        return  # ← thread lama masih winding down → tidak launch apapun
+```
+
+Camoufox cleanup (context manager exit + session save) bisa lebih dari 2 detik. `close()` hanya join 2 detik → thread lama masih `is_alive()` → `launch_browser()` return tanpa action.
+
+### Fix
+```python
+# main_window.py — ✅ CORRECT
+if self._ads_session_active and icon_name not in ("ads", "browser", "spy"):
+    return  # spy diizinkan
+
+# browser_manager.py — ✅ CORRECT
+def launch_browser(self, ...):
+    with self._lock:
+        # Force-close thread lama SEBELUM launch baru
+        if self._thread is not None and self._thread.is_alive():
+            self._running = False
+            self._thread.join(timeout=4)
+            self._thread = None
+            self._browser = None
+            self._page = None
+            self._command_queue = None
+        # Now launch fresh
+        self._target_url = target_url
+        self._thread = threading.Thread(target=self._run_browser, ...)
+        self._thread.start()
+
+def close(self):
+    with self._lock:
+        self._running = False
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=8)  # naik dari 2
+            self._thread = None           # penting: null-kan referensi
+```
+
+---
+
+## 🔴 ERROR 15: QDialog Invisible on QFrame Parent
+
+### Symptom
+Settings dialog tidak muncul sama sekali. `dialog.show()` dipanggil, tidak ada error.
+
+### Root Cause
+`MainWindow` extends `QFrame`, bukan `QMainWindow`. QDialog dengan parent QFrame tidak bisa dijamin muncul sebagai foreground window.
+
+Selain itu, `setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)` di constructor adalah **PyQt6 bug yang terdokumentasi** — memodifikasi window flags SEBELUM `show()` bisa membuat dialog invisible di Windows.
+
+### Fix
+```python
+# ✅ CORRECT — 3 langkah
+# 1. Parent = None (top-level window, tidak bergantung pada QFrame)
+dialog = SettingsPanel(None)
+
+# 2. setWindowFlags SETELAH constructor (bukan di dalam constructor)
+dialog.setWindowFlags(
+    Qt.WindowType.Dialog |
+    Qt.WindowType.WindowCloseButtonHint |
+    Qt.WindowType.WindowTitleHint
+)
+
+# 3. Manual centering
+main_geo = self.geometry()
+dw, dh = dialog.width(), dialog.height()
+x = main_geo.x() + (main_geo.width() - dw) // 2
+y = main_geo.y() + (main_geo.height() - dh) // 2
+dialog.move(max(0, x), max(0, y))
+dialog.show()
+```
+
+---
+
+## 🔴 ERROR 16: Chat Bubble Width Collapsed (60px)
+
+### Symptom
+Agent bubble lebar 60px — teks sangat sempit, wrap berlebihan, tidak terbaca.
+
+### Root Cause
+```python
+# ❌ WRONG — setAlignment forces widget to sizeHint width
+container_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+```
+
+`setAlignment(AlignLeft)` di QHBoxLayout membuat widget berada tepat di ukuran `sizeHint()`-nya — tidak ada stretch ke kanan. Jika `sizeHint().width()` = 60px (dari `doc.idealWidth()` untuk teks pendek) → bubble = 60px.
+
+```python
+# ❌ ALSO WRONG — sizeHint width terlalu kecil
+def sizeHint(self):
+    ideal = int(doc.idealWidth()) + 10  # doc.idealWidth() bisa 50px untuk teks pendek
+    return QSize(min(ideal, 500), height)  # hasil: 60px
+```
+
+### Fix
+```python
+# ✅ CORRECT — addStretch untuk alignment, bukan setAlignment
+clayout.addWidget(msg_widget)
+clayout.addStretch()  # widget di kiri, stretch isi ruang kanan
+
+# ✅ CORRECT — sizeHint width diklamp ke minimum yang masuk akal
+def sizeHint(self):
+    width = max(self._text_width + 20, int(doc.idealWidth()) + 10)  # tidak < 430px
+    return QSize(width, height)
+```
+
+| Pattern | Hasil |
+|---|---|
+| `setAlignment(AlignLeft)` | Widget fixed di ukuran `sizeHint()` — sempit |
+| `addStretch()` | Widget di kiri, stretch mengisi ruang — lebar sesuai `sizeHint` |
+
+---
+
+## 🔴 ERROR 17: `parent_layout.count()` AttributeError on QWidget
+
+### Symptom
+```
+AttributeError: 'ChatWidget' object has no attribute 'count'
+```
+
+### Root Cause
+`self.message_input.parent()` returns the `QWidget` (parent widget), not the `QLayout`. `QWidget` doesn't have `.count()` — only `QLayout` does.
+
+### Fix
+```python
+# ❌ WRONG
+parent_layout = self.message_input.parent()  # returns QWidget, not layout
+parent_layout.count()  # AttributeError
+
+# ✅ CORRECT — simpan layout reference sebagai class attr
+self._input_layout = input_layout  # simpan saat setup_ui
+...
+if hasattr(self, '_input_layout') and self._input_layout:
+    input_layout = self._input_layout
+    input_layout.count()  # QLayout.count() — benar
+```

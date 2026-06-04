@@ -12,8 +12,14 @@ a = Analysis(
     binaries=[],
     datas=[
         ('config', 'config'),
+        ('shopeeagentcrop.ico', '.'),
         (os.path.join(site_pkg, 'crewai', 'translations'), 'crewai/translations'),
         (os.path.join(site_pkg, 'apify_fingerprint_datapoints', 'data'), 'apify_fingerprint_datapoints/data'),
+        # Camoufox YAML data files
+        (os.path.join(site_pkg, 'camoufox', 'browserforge.yml'), 'camoufox'),
+        (os.path.join(site_pkg, 'camoufox', 'warnings.yml'), 'camoufox'),
+        # language_tags data (needed by camoufox > locale)
+        (os.path.join(site_pkg, 'language_tags', 'data'), 'language_tags/data'),
     ],
     hiddenimports=[
         'crewai',
@@ -58,7 +64,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    icon='logoicon-removebg-preview.ico',
+    icon='shopeeagentcrop.ico',
     name='ShopeeAgent',
     debug=False,
     bootloader_ignore_signals=False,

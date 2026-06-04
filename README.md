@@ -1,8 +1,8 @@
-# ShopeeAgent v1.2.0 — AI Shopee Manager
+# ShopeeAgent v1.3.1 — AI Shopee Manager
 
 A powerful desktop application combining CrewAI multi-agent intelligence with Camoufox stealth browser for Shopee store management, ads optimization, and market intelligence.
 
-![Version](https://img.shields.io/badge/Version-1.2.0-EE4D2D?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.3.1-4A90D9?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge)
 
 ## 🎯 Features
@@ -20,7 +20,7 @@ A powerful desktop application combining CrewAI multi-agent intelligence with Ca
 - Performance classification: Bagus / Cukup / Rugi
 - Auto-pagination across ALL pages
 
-### 🕵️ SpyAgent — Market Intelligence (NEW v1.2.0)
+### 🕵️ SpyAgent — Market Intelligence (v1.3.0)
 - 4 AI agents + 5 custom tools for competitor analysis
 - **Structured DOM extraction** — 16 data fields per product in clean JSON
 - **Review mining** — extract customer pain points & strengths

@@ -27,10 +27,14 @@ class BrowserManager(QObject):
 
     def launch_browser(self, headless: bool = False, headful: bool = True, target_url: str = None):
         with self._lock:
-            if self._browser is not None and self._page is not None:
-                return
+            # If a previous browser thread is still winding down, force-close it
             if self._thread is not None and self._thread.is_alive():
-                return
+                self._running = False
+                self._thread.join(timeout=4)
+                self._thread = None
+                self._browser = None
+                self._page = None
+                self._command_queue = None
             
             self._target_url = target_url
             self._thread = threading.Thread(target=self._run_browser, args=(headless, headful), daemon=True)
@@ -106,14 +110,40 @@ class BrowserManager(QObject):
             if has_session and self._target_url is None:
                 browser_options["storage_state"] = session_path
             
-            with Camoufox(**browser_options) as browser:
+            fox = None
+            retry_count = 0
+            max_retries = 3
+
+            while retry_count < max_retries:
+                try:
+                    fox = Camoufox(**browser_options)
+                    break
+                except Exception as e:
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        raise RuntimeError(f"Camoufox gagal launch setelah {max_retries}x retry: {e}")
+                    time.sleep(2 * retry_count)
+
+            with fox as browser:
                 self._browser = browser
                 
                 self._page = browser.new_page(viewport={"width": 1280, "height": 760})
-                try:
-                    self._page.goto(target_url, wait_until="domcontentloaded", timeout=60000)
-                except Exception:
-                    self._page.goto(target_url, wait_until="commit", timeout=30000)
+                
+                page_error = None
+                for attempt in range(2):
+                    try:
+                        method = "domcontentloaded" if attempt == 0 else "commit"
+                        timeout = 60000 if attempt == 0 else 30000
+                        self._page.goto(target_url, wait_until=method, timeout=timeout)
+                        page_error = None
+                        break
+                    except Exception as e:
+                        page_error = e
+                        time.sleep(1)
+                
+                if page_error is not None:
+                    self._safe_emit_error(f"Page load warning: {page_error} — continuing anyway")
+                
                 self._running = True
 
                 config = BrowserConfig.get_instance()
@@ -126,8 +156,20 @@ class BrowserManager(QObject):
 
                 self._safe_emit_ready()
 
+                # health check timer
+                last_health_check = time.time()
+
                 while self._running:
                     try:
+                        # periodic health check — verify page is alive
+                        now = time.time()
+                        if now - last_health_check > 30:
+                            try:
+                                self._page.evaluate("1 + 1")
+                            except Exception:
+                                self._safe_emit_error("Browser health check failed — page may have crashed")
+                            last_health_check = now
+
                         if not command_queue.empty():
                             command = command_queue.get()
                             action = command.get('action')
@@ -139,7 +181,14 @@ class BrowserManager(QObject):
                                 if action == "get_info":
                                     result = f"Current URL: {self._page.url}\nCurrent Title: {self._page.title()}"
                                 elif action == "goto":
-                                    self._page.goto(params.get('url'))
+                                    for ga in range(2):
+                                        try:
+                                            self._page.goto(params.get('url'), wait_until="domcontentloaded", timeout=45000)
+                                            break
+                                        except Exception as ge:
+                                            if ga == 1:
+                                                raise
+                                            time.sleep(1)
                                     result = f"Navigated to {params.get('url')}"
                                 elif action == "get_content":
                                     result = self._page.content()
@@ -254,7 +303,8 @@ class BrowserManager(QObject):
         with self._lock:
             self._running = False
             if self._thread and self._thread.is_alive():
-                self._thread.join(timeout=2)
+                self._thread.join(timeout=8)
+                self._thread = None
             
             self._browser = None
             self._page = None

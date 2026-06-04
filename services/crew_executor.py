@@ -1,7 +1,7 @@
 import threading
 import traceback
 from typing import Optional
-from PyQt6.QtCore import QObject, pyqtSignal, QMetaObject, Qt, Q_ARG
+from PyQt6.QtCore import QObject, pyqtSignal
 
 from tools.browser_tool import BrowserConfig
 
@@ -33,23 +33,16 @@ class CrewExecutor(QObject):
         self._config.set_page(page)
 
     def _safe_emit_status(self, agent: str, status: str):
+        """Emit status from ANY thread — PyQt auto-queues cross-thread signals."""
         try:
-            QMetaObject.invokeMethod(
-                self, "status_update",
-                Qt.ConnectionType.QueuedConnection,
-                Q_ARG(str, agent),
-                Q_ARG(str, status)
-            )
+            self.status_update.emit(agent, status)
         except Exception:
             pass
 
     def _safe_emit_message(self, message: str):
+        """Emit message from ANY thread — PyQt auto-queues cross-thread signals."""
         try:
-            QMetaObject.invokeMethod(
-                self, "message_ready",
-                Qt.ConnectionType.QueuedConnection,
-                Q_ARG(str, message)
-            )
+            self.message_ready.emit(message)
         except Exception:
             pass
 

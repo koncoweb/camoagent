@@ -44,7 +44,7 @@ class SpyCrew:
             verbose=True,
             allow_delegation=True,
             max_iter=self.max_iter,
-            max_execution_time=300
+            max_execution_time=600
         )
 
     @agent
@@ -56,7 +56,7 @@ class SpyCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=self.max_iter,
-            max_execution_time=180
+            max_execution_time=600
         )
 
     @agent
@@ -68,7 +68,7 @@ class SpyCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=self.max_iter,
-            max_execution_time=180
+            max_execution_time=600
         )
 
     @agent
@@ -80,7 +80,7 @@ class SpyCrew:
             verbose=True,
             allow_delegation=False,
             max_iter=self.max_iter,
-            max_execution_time=240
+            max_execution_time=600
         )
 
     @task

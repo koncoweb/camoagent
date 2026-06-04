@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QTableWidgetItem, QTabWidget, QWidget, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QColor
 import os
 from dotenv import load_dotenv
 
@@ -33,495 +33,661 @@ ALL_MODELS = SUMOPOD_MODELS + OPENAI_MODELS
 
 
 class CrewPanel(QFrame):
+    """Crew management: shows all 3 crews (Browser, Ads, Spy) and Camoufox status."""
+
     crew_status_update = pyqtSignal(str, str)
+
+    # ── palette ─────────────────────────────────────────────────
+    ACCENT   = "#4A90D9"
+    SUCCESS  = "#4CAF50"
+    TEXT     = "#1A1A1A"
+    TEXT_MUTED="#666666"
+    TEXT_SUB  ="#999999"
+    BORDER   = "#E0E0E0"
+    PAGE_BG  = "#F5F5F5"
+    CARD_BG  = "#FFFFFF"
+
+    CREW_CARD_STYLE = f"""
+        QFrame#crewCard {{
+            background-color: {CARD_BG};
+            border: 1px solid {BORDER};
+            border-radius: 6px;
+            padding: 0px;
+        }}
+    """
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setStyleSheet("""
-            QFrame {
-                background-color: #FFF8F5;
-                border-radius: 12px;
-            }
-        """)
+        self.setStyleSheet("QFrame#crewPanel { background-color: #F5F5F5; border-radius: 8px; }")
+        self.setObjectName("crewPanel")
+        self._crew_status_data = {}
         self.setup_ui()
 
+    # ── crew definitions ───────────────────────────────────────
+    @staticmethod
+    def _crew_defs():
+        return [
+            {
+                "id": "browser",
+                "name": "BrowserCrew",
+                "icon": "🌐",
+                "desc": "Otomasi browser & ekstraksi data halaman",
+                "process": "Hierarchical",
+                "memory": False,
+                "planning": False,
+                "agents": [
+                    ("Navigator", "Navigasi & interaksi halaman Shopee", "11 browser tools"),
+                    ("Scraper",   "Ekstraksi konten & data dari DOM",    "11 browser tools"),
+                    ("Analyst",   "Analisis data & sintesis laporan",    "—"),
+                ],
+            },
+            {
+                "id": "ads",
+                "name": "ShopeeCrew",
+                "icon": "📢",
+                "desc": "Analisis & optimasi iklan Shopee Seller Center",
+                "process": "Sequential",
+                "memory": False,
+                "planning": False,
+                "agents": [
+                    ("ShopeeNavigator", "Ekstrak metrik iklan dari Seller Center", "3 ads tools + 11 browser"),
+                    ("FinancialAnalyst", "Hitung ROAS, Break-Even, Net Profit",     "3 ads tools"),
+                    ("AdsOptimizer",     "Rekomendasi bid & optimasi iklan",         "3 ads tools"),
+                ],
+            },
+            {
+                "id": "spy",
+                "name": "SpyCrew",
+                "icon": "🕵️",
+                "desc": "Market intelligence & analisis kompetitor Shopee marketplace",
+                "process": "Sequential",
+                "memory": True,
+                "planning": True,
+                "agents": [
+                    ("MarketScanner",       "DOM extraction 16-field structured JSON",  "5 spy + 11 browser"),
+                    ("CompetitorProfiler",   "Analisis toko, harga, gap opportunities", "5 spy tools"),
+                    ("TrendDetector",        "Best-seller, review mining, tren pasar",  "5 spy + 11 browser"),
+                    ("StrategySynthesizer",  "Laporan market intelligence 7 section",   "—"),
+                ],
+            },
+        ]
+
+    # ── ui ──────────────────────────────────────────────────────
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
 
-        title = QLabel("🤖 AI Crew Configuration")
-        title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        title.setStyleSheet("color: #EE4D2D;")
+        title = QLabel("Crew Management")
+        title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        title.setStyleSheet("color: #1A1A1A; padding-bottom: 2px;")
         layout.addWidget(title)
 
-        crew_info_group = QGroupBox("👥 Crew Structure")
-        crew_info_group.setStyleSheet("""
-            QGroupBox {
-                color: #EE4D2D;
-                border: 2px solid #F5A623;
-                border-radius: 8px;
-                margin-top: 12px;
-                font-weight: bold;
-                background-color: #FFFFFF;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 8px;
-            }
-        """)
-        crew_layout = QVBoxLayout()
+        subtitle = QLabel("CrewAI multi-agent orchestration — 3 crews, 10 agents, 19 tools")
+        subtitle.setStyleSheet("color: #555555; font-size: 12px; padding-bottom: 4px;")
+        layout.addWidget(subtitle)
 
-        process_row = QHBoxLayout()
-        process_row.addWidget(QLabel("Process:"))
-        self.process_label = QLabel("Sequential (Shopee Ads Workflow)")
-        self.process_label.setStyleSheet("color: #333; font-weight: bold;")
-        process_row.addWidget(self.process_label)
-        process_row.addStretch()
-        crew_layout.addLayout(process_row)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
 
-        crew_layout.addWidget(QLabel("<b>Agents:</b>"))
+        content = QWidget()
+        content.setStyleSheet("background: transparent;")
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(12)
 
-        agent_list = QListWidget()
-        agent_list.setStyleSheet("""
-            QListWidget {
-                background-color: #FFF8F5;
-                border: 1px solid #F5A623;
-                border-radius: 8px;
-                color: #333;
-                font-size: 12px;
-            }
-            QListWidget::item {
-                padding: 10px;
-                border-bottom: 1px solid #FFE0CC;
-            }
-            QListWidget::item:selected {
-                background-color: #EE4D2D;
-                color: white;
-            }
-        """)
-        agents = [
-            ("🛒 ShopeeNavigator", "Navigates & extracts data from Shopee pages", "Active"),
-            ("📊 FinancialAnalyst", "Calculates ROAS, Break-Even, Max CPC", "Active"),
-            ("🎯 AdsOptimizer", "Generates bid optimization recommendations", "Active"),
-        ]
-        for name, desc, status in agents:
-            item = QListWidgetItem(f"{name}\n   {desc} [{status}]")
-            agent_list.addItem(item)
-        agent_list.setMaximumHeight(130)
-        crew_layout.addWidget(agent_list)
-        crew_info_group.setLayout(crew_layout)
-        layout.addWidget(crew_info_group)
+        # ── Camoufox status card ────────────────────────────────
+        content_layout.addWidget(self._build_camoufox_card())
 
-        status_group = QGroupBox("📈 Live Status")
-        status_group.setStyleSheet(crew_info_group.styleSheet())
-        status_layout = QFormLayout()
-        status_layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        # ── crew cards ──────────────────────────────────────────
+        for crew_def in self._crew_defs():
+            content_layout.addWidget(self._build_crew_card(crew_def))
 
-        self.crew_status = QLabel("Idle")
-        self.crew_status.setStyleSheet("color: #28A745; font-weight: bold; font-size: 14px;")
-        status_layout.addRow("Status:", self.crew_status)
+        content_layout.addStretch()
+        scroll.setWidget(content)
+        layout.addWidget(scroll)
 
-        self.current_task = QLabel("None")
-        self.current_task.setStyleSheet("color: #666;")
-        status_layout.addRow("Current Task:", self.current_task)
+    # ── Camoufox card ───────────────────────────────────────────
+    def _build_camoufox_card(self) -> QFrame:
+        card = QFrame()
+        card.setObjectName("crewCard")
+        card.setStyleSheet(self.CREW_CARD_STYLE)
+        cl = QVBoxLayout(card)
+        cl.setContentsMargins(14, 10, 14, 10)
+        cl.setSpacing(8)
 
-        self.tasks_completed = QLabel("0")
-        self.tasks_completed.setStyleSheet("color: #EE4D2D; font-weight: bold; font-size: 14px;")
-        status_layout.addRow("Tasks Done:", self.tasks_completed)
+        header = QHBoxLayout()
+        hdr = QLabel("  Camoufox Browser")
+        hdr.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        hdr.setStyleSheet(f"color: {self.TEXT}; border: none;")
+        header.addWidget(hdr)
+        header.addStretch()
 
-        status_group.setLayout(status_layout)
-        layout.addWidget(status_group)
+        self._fox_status = QLabel("Disconnected")
+        self._fox_status.setStyleSheet(
+            f"color: {self.TEXT_SUB}; font-size: 11px; font-weight: bold; padding: 2px 8px; "
+            f"background: {self.PAGE_BG}; border-radius: 10px; border: none;")
+        header.addWidget(self._fox_status)
+        cl.addLayout(header)
 
-        layout.addStretch()
+        info = QHBoxLayout()
+        info.setSpacing(16)
+        for label, value in [
+            ("Engine", "Firefox (Gecko)"),
+            ("Stealth", "BrowserForge + anti-detect"),
+            ("Proxy", "None (direct)"),
+            ("Locale", "id-ID (Indonesia)"),
+        ]:
+            box = QVBoxLayout()
+            box.setSpacing(2)
+            l = QLabel(label)
+            l.setStyleSheet(f"color: {self.TEXT_SUB}; font-size: 10px; border: none;")
+            v = QLabel(value)
+            v.setStyleSheet(f"color: {self.TEXT}; font-size: 11px; font-weight: bold; border: none;")
+            box.addWidget(l)
+            box.addWidget(v)
+            info.addLayout(box)
+        info.addStretch()
+        cl.addLayout(info)
+
+        self._session_label = QLabel("Session: —")
+        self._session_label.setStyleSheet(f"color: {self.TEXT_SUB}; font-size: 11px; border: none;")
+        cl.addWidget(self._session_label)
+
+        return card
+
+    # ── single crew card ────────────────────────────────────────
+    def _build_crew_card(self, crew_def: dict) -> QFrame:
+        card = QFrame()
+        card.setObjectName("crewCard")
+        card.setStyleSheet(self.CREW_CARD_STYLE)
+
+        cl = QVBoxLayout(card)
+        cl.setContentsMargins(14, 10, 14, 10)
+        cl.setSpacing(6)
+
+        header = QHBoxLayout()
+        hdr = QLabel(f"{crew_def['icon']}  {crew_def['name']}")
+        hdr.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        hdr.setStyleSheet(f"color: {self.TEXT}; border: none;")
+        header.addWidget(hdr)
+        header.addStretch()
+
+        # badges — semua pakai warna biru aksen
+        badges = [crew_def['process']]
+        if crew_def['memory']:
+            badges.append("Memory")
+        if crew_def['planning']:
+            badges.append("Planning")
+        for badge in badges:
+            b = QLabel(badge)
+            b.setStyleSheet(
+                f"color: {self.ACCENT}; font-size: 10px; font-weight: bold; padding: 2px 7px; "
+                f"background: {self.PAGE_BG}; border: 1px solid {self.BORDER}; border-radius: 8px;")
+            header.addWidget(b)
+        cl.addLayout(header)
+
+        desc = QLabel(crew_def['desc'])
+        desc.setWordWrap(True)
+        desc.setStyleSheet(f"color: {self.TEXT_MUTED}; font-size: 11px; border: none; margin-bottom: 2px;")
+        cl.addWidget(desc)
+
+        for agent_name, agent_desc, agent_tools in crew_def['agents']:
+            row = QHBoxLayout()
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(8)
+
+            name_lbl = QLabel(agent_name)
+            name_lbl.setStyleSheet(f"color: {self.TEXT}; font-size: 12px; font-weight: bold; border: none;")
+            name_lbl.setFixedWidth(140)
+            row.addWidget(name_lbl)
+
+            desc_lbl = QLabel(agent_desc)
+            desc_lbl.setStyleSheet(f"color: {self.TEXT_MUTED}; font-size: 11px; border: none;")
+            row.addWidget(desc_lbl, stretch=1)
+
+            tools_lbl = QLabel(agent_tools)
+            tools_lbl.setStyleSheet(f"color: {self.TEXT_SUB}; font-size: 10px; border: none;")
+            tools_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+            row.addWidget(tools_lbl)
+
+            cl.addLayout(row)
+
+        return card
+
+    # ── public api ──────────────────────────────────────────────
+    def update_fox_status(self, connected: bool, session: str = ""):
+        if connected:
+            self._fox_status.setText("Connected")
+            self._fox_status.setStyleSheet(
+                f"color: {self.SUCCESS}; font-size: 11px; font-weight: bold; padding: 2px 8px; "
+                f"background: #E8F5E9; border-radius: 10px; border: none;")
+            self._session_label.setText(f"Session: {session}" if session else "Session: active")
+        else:
+            self._fox_status.setText("Disconnected")
+            self._fox_status.setStyleSheet(
+                f"color: {self.TEXT_SUB}; font-size: 11px; font-weight: bold; padding: 2px 8px; "
+                f"background: {self.PAGE_BG}; border-radius: 10px; border: none;")
+            self._session_label.setText("Session: —")
 
     def update_status(self, status: str, task: str = ""):
-        status_colors = {
-            "idle": "#28A745",
-            "working": "#F5A623",
-            "ready": "#28A745",
-            "error": "#DC3545",
-            "Shopee Crew": "#EE4D2D"
-        }
-        color = status_colors.get(status, "#666")
-        self.crew_status.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14px;")
-        self.crew_status.setText(status.upper())
-        if task:
-            self.current_task.setText(task[:50] + "..." if len(task) > 50 else task)
+        pass
 
 
 class AnalyticsPanel(QFrame):
+    """Analytics dashboard with card-style metrics."""
+
+    LABEL    = "#1A1A1A"
+    MUTED    = "#666666"
+    ACCENT   = "#4A90D9"
+    SUCCESS  = "#4CAF50"
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setStyleSheet("""
-            QFrame {
-                background-color: #FFF8F5;
-                border-radius: 12px;
-            }
+            QFrame#analyticsPanel { background-color: #F5F5F5; border-radius: 8px; }
         """)
+        self.setObjectName("analyticsPanel")
         self.task_history = []
         self.setup_ui()
 
+    # ── ui ──────────────────────────────────────────────────────
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+        layout.setSpacing(16)
 
-        title = QLabel("📊 Analytics Dashboard")
-        title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        title.setStyleSheet("color: #EE4D2D;")
+        # title
+        title = QLabel("Analytics Dashboard")
+        title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {self.LABEL}; padding-bottom: 4px;")
         layout.addWidget(title)
 
-        metrics_group = QGroupBox("📈 Performance Metrics")
-        metrics_group.setStyleSheet("""
-            QGroupBox {
-                color: #EE4D2D;
-                border: 2px solid #F5A623;
-                border-radius: 8px;
-                margin-top: 12px;
-                font-weight: bold;
-                background-color: #FFFFFF;
-            }
-        """)
-        metrics_layout = QVBoxLayout()
-        metrics_layout.setSpacing(12)
+        # ── metric cards row ────────────────────────────────────
+        cards = QHBoxLayout()
+        cards.setSpacing(12)
 
-        tasks_row = self._create_metric_row("📋 Tasks Executed:", "0", "#EE4D2D")
-        self.tasks_count = tasks_row[1]
-        metrics_layout.addLayout(tasks_row[2])
+        self.tasks_card  = self._make_metric_card("Tasks", "0", self.ACCENT)
+        self.errors_card = self._make_metric_card("Errors", "0", "#C62828")
+        self.tokens_card = self._make_metric_card("Est. Tokens", "~0", self.MUTED)
 
-        errors_row = self._create_metric_row("❌ Errors:", "0", "#DC3545")
-        self.errors_count = errors_row[1]
-        metrics_layout.addLayout(errors_row[2])
+        cards.addWidget(self.tasks_card)
+        cards.addWidget(self.errors_card)
+        cards.addWidget(self.tokens_card)
+        layout.addLayout(cards)
 
-        tokens_row = self._create_metric_row("🔢 Est. Tokens:", "~0", "#666")
-        self.tokens_count = tokens_row[1]
-        metrics_layout.addLayout(tokens_row[2])
-
-        metrics_group.setLayout(metrics_layout)
-        layout.addWidget(metrics_group)
-
-        history_label = QLabel("📋 Task History")
-        history_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        history_label.setStyleSheet("color: #EE4D2D;")
-        layout.addWidget(history_label)
+        # ── task history list ───────────────────────────────────
+        history_header = QLabel("Task History")
+        history_header.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        history_header.setStyleSheet(f"color: {self.LABEL}; padding-top: 6px;")
+        layout.addWidget(history_header)
 
         self.history_list = QListWidget()
         self.history_list.setStyleSheet("""
             QListWidget {
                 background-color: #FFFFFF;
-                border: 2px solid #F5A623;
-                border-radius: 8px;
-                color: #333;
-                font-size: 11px;
+                border: 1px solid #D0D0D0;
+                border-radius: 6px;
+                color: #1A1A1A;
+                font-size: 12px;
             }
             QListWidget::item {
-                padding: 8px;
+                padding: 8px 10px;
+                border-bottom: 1px solid #EEEEEE;
             }
+            QListWidget::item:last { border-bottom: none; }
             QListWidget::item:selected {
-                background-color: #EE4D2D;
+                background-color: #4A90D9;
                 color: white;
             }
         """)
         layout.addWidget(self.history_list, stretch=1)
 
-    def _create_metric_row(self, label_text: str, initial_value: str, color: str):
-        row = QHBoxLayout()
-        label = QLabel(label_text)
-        label.setStyleSheet("color: #666;")
-        value_label = QLabel(initial_value)
-        value_label.setStyleSheet(f"color: {color}; font-size: 20px; font-weight: bold;")
-        row.addWidget(label)
-        row.addStretch()
-        row.addWidget(value_label)
-        return (label, value_label, row)
+    # ── metric card factory ─────────────────────────────────────
+    def _make_metric_card(self, label: str, initial: str, accent: str) -> QFrame:
+        card = QFrame()
+        card.setFixedHeight(80)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 6px;
+            }}
+        """)
+        cl = QVBoxLayout(card)
+        cl.setContentsMargins(14, 10, 14, 10)
+        cl.setSpacing(4)
 
+        lbl = QLabel(label)
+        lbl.setFont(QFont("Segoe UI", 10))
+        lbl.setStyleSheet(f"color: {self.MUTED}; border: none;")
+
+        val = QLabel(initial)
+        val.setObjectName(f"_metric_val_{label.replace(' ', '_')}")
+        val.setFont(QFont("Segoe UI", 22, QFont.Weight.Bold))
+        val.setStyleSheet(f"color: {accent}; border: none;")
+
+        cl.addWidget(lbl)
+        cl.addWidget(val)
+        cl.addStretch()
+        return card
+
+    def _get_card_value_label(self, card: QFrame) -> QLabel:
+        """Return the value QLabel inside a metric card."""
+        for ch in card.findChildren(QLabel):
+            if ch.objectName().startswith("_metric_val_"):
+                return ch
+        return QLabel("?")
+
+    # ── public api ──────────────────────────────────────────────
     def add_task(self, task: str, status: str = "success"):
         self.task_history.append({"task": task, "status": status})
-        self.tasks_count.setText(str(len(self.task_history)))
-        
+        n = len(self.task_history)
+
+        self._get_card_value_label(self.tasks_card).setText(str(n))
+
         error_count = sum(1 for t in self.task_history if t["status"] == "error")
-        self.errors_count.setText(str(error_count))
-        
-        est_tokens = len(self.task_history) * 1500
-        self.tokens_count.setText(f"~{est_tokens:,}")
-        
-        status_icon = "✅" if status == "success" else "❌"
-        item = QListWidgetItem(f"{status_icon} {task[:60]}...")
-        self.history_list.addItem(item)
-        self.history_list.scrollToBottom()
+        self._get_card_value_label(self.errors_card).setText(str(error_count))
+
+        est = n * 1500
+        self._get_card_value_label(self.tokens_card).setText(f"~{est:,}")
+
+        icon = "✓" if status == "success" else "✗"
+        item = QListWidgetItem(f"  {icon}  {task[:70]}")
+        if status == "error":
+            item.setForeground(QColor("#C62828"))
+        self.history_list.insertItem(0, item)
 
 
 class SettingsPanel(QDialog):
+    """Settings dialog with consistent dark labels and proper form spacing."""
+
     settings_changed = pyqtSignal(dict)
 
+    # ── constants ──────────────────────────────────────────────
+    LABEL_COLOR = "#1A1A1A"
+    ACCENT      = "#4A90D9"
+    GROUP_STYLE = """
+        QGroupBox {
+            color: #1A1A1A;
+            border: 1px solid #D0D0D0;
+            border-radius: 6px;
+            margin-top: 14px;
+            padding: 18px 12px 12px 12px;
+            font-weight: bold;
+            background-color: #FAFAFA;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            subcontrol-position: top left;
+            left: 12px;
+            padding: 0 6px;
+            background-color: #FAFAFA;
+        }
+    """
+
+    # ── widget style helpers ────────────────────────────────────
+    @staticmethod
+    def _combobox_style() -> str:
+        return """
+            QComboBox {
+                background-color: #FFFFFF;
+                color: #1A1A1A;
+                border: 1px solid #CCCCCC;
+                border-radius: 4px;
+                padding: 6px 10px;
+                min-width: 180px;
+                font-size: 13px;
+            }
+            QComboBox:hover { border-color: #4A90D9; }
+            QComboBox:focus { border-color: #4A90D9; }
+            QComboBox::drop-down { border: none; width: 20px; }
+            QComboBox QAbstractItemView {
+                background-color: #FFFFFF;
+                color: #1A1A1A;
+                border: 1px solid #CCCCCC;
+                selection-background-color: #4A90D9;
+            }
+        """
+
+    @staticmethod
+    def _spinbox_style() -> str:
+        return """
+            QSpinBox {
+                background-color: #FFFFFF;
+                color: #1A1A1A;
+                border: 1px solid #CCCCCC;
+                border-radius: 4px;
+                padding: 6px 10px;
+                min-width: 80px;
+                font-size: 13px;
+            }
+            QSpinBox:hover { border-color: #4A90D9; }
+            QSpinBox:focus { border-color: #4A90D9; }
+        """
+
+    @staticmethod
+    def _lineedit_style() -> str:
+        return """
+            QLineEdit {
+                background-color: #FFFFFF;
+                color: #1A1A1A;
+                border: 1px solid #CCCCCC;
+                border-radius: 4px;
+                padding: 7px 10px;
+                font-size: 13px;
+            }
+            QLineEdit:hover { border-color: #4A90D9; }
+            QLineEdit:focus { border-color: #4A90D9; }
+        """
+
+    @staticmethod
+    def _label_style() -> str:
+        return f"color: {SettingsPanel.LABEL_COLOR}; font-size: 13px; padding-right: 8px;"
+
+    # ── init ────────────────────────────────────────────────────
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("⚙️ ShopeeAgent Settings")
-        self.setMinimumSize(520, 620)
-        self.setMaximumSize(580, 720)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowTitle("ShopeeAgent Settings")
+        self.resize(480, 620)
+        self.setMinimumWidth(440)
         self.setup_ui()
 
+    # ── ui ──────────────────────────────────────────────────────
     def setup_ui(self):
+        self.setStyleSheet(f"QDialog {{ background-color: #F5F5F5; color: {self.LABEL_COLOR}; }}")
+
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(15, 15, 15, 15)
-        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(0)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("""
-            QScrollArea {
-                border: none;
-                background-color: transparent;
-            }
-        """)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
 
-        content_widget = QWidget()
-        content_layout = QVBoxLayout(content_widget)
-        content_layout.setSpacing(15)
+        content = QWidget()
+        content.setStyleSheet("background: transparent;")
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(16)
 
-        title = QLabel("⚙️ Settings")
-        title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        title.setStyleSheet("color: #EE4D2D;")
+        # ── title ───────────────────────────────────────────────
+        title = QLabel("Settings")
+        title.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        title.setStyleSheet(f"color: {self.LABEL_COLOR}; padding-bottom: 4px;")
         content_layout.addWidget(title)
 
-        llm_group = QGroupBox("🤖 LLM Configuration")
-        llm_group.setStyleSheet("""
-            QGroupBox {
-                color: #EE4D2D;
-                border: 2px solid #F5A623;
-                border-radius: 8px;
-                margin-top: 12px;
-                font-weight: bold;
-                background-color: #FFFFFF;
-            }
-        """)
-        llm_layout = QFormLayout()
-        llm_layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-        llm_layout.setSpacing(10)
+        # ── LLM ─────────────────────────────────────────────────
+        content_layout.addWidget(self._build_llm_group())
 
-        provider_label = QLabel("Provider:")
-        provider_label.setStyleSheet("color: #333; font-weight: normal;")
-        self.provider_combo = QComboBox()
-        self.provider_combo.addItems([
-            "SumoPod AI",
-            "Official OpenAI"
-        ])
-        self.provider_combo.setCurrentText("SumoPod AI")
-        self.provider_combo.setStyleSheet(self._combobox_style())
-        self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
-        llm_layout.addRow(provider_label, self.provider_combo)
+        # ── Browser ─────────────────────────────────────────────
+        content_layout.addWidget(self._build_browser_group())
 
-        model_label = QLabel("Model:")
-        model_label.setStyleSheet("color: #333; font-weight: normal;")
-        self.model_combo = QComboBox()
-        self._update_model_combo("SumoPod AI")
-        self.model_combo.setStyleSheet(self._combobox_style())
-        llm_layout.addRow(model_label, self.model_combo)
+        # ── CrewAI Advanced ─────────────────────────────────────
+        content_layout.addWidget(self._build_crew_group())
 
-        max_iter_label = QLabel("Max Iterations:")
-        max_iter_label.setStyleSheet("color: #333; font-weight: normal;")
-        self.max_iter_spin = QSpinBox()
-        self.max_iter_spin.setRange(1, 50)
-        self.max_iter_spin.setValue(10)
-        self.max_iter_spin.setStyleSheet(self._spinbox_style())
-        llm_layout.addRow(max_iter_label, self.max_iter_spin)
+        # ── API Keys ────────────────────────────────────────────
+        content_layout.addWidget(self._build_api_group())
 
-        max_time_label = QLabel("Max Exec Time (s):")
-        max_time_label.setStyleSheet("color: #333; font-weight: normal;")
-        self.max_time_spin = QSpinBox()
-        self.max_time_spin.setRange(30, 600)
-        self.max_time_spin.setValue(120)
-        self.max_time_spin.setStyleSheet(self._spinbox_style())
-        llm_layout.addRow(max_time_label, self.max_time_spin)
-
-        llm_group.setLayout(llm_layout)
-        content_layout.addWidget(llm_group)
-
-        browser_group = QGroupBox("🌐 Browser Settings")
-        browser_group.setStyleSheet(llm_group.styleSheet())
-        browser_layout = QFormLayout()
-        browser_layout.setSpacing(10)
-
-        self.headless_check = self._create_checkbox("Headless Mode")
-        browser_layout.addRow(self.headless_check)
-
-        self.humanize_check = self._create_checkbox("Humanize Mouse Movement")
-        self.humanize_check.setChecked(True)
-        browser_layout.addRow(self.humanize_check)
-
-        browser_group.setLayout(browser_layout)
-        content_layout.addWidget(browser_group)
-
-        crew_group = QGroupBox("🔧 CrewAI Advanced")
-        crew_group.setStyleSheet(llm_group.styleSheet())
-        crew_layout = QFormLayout()
-        crew_layout.setSpacing(10)
-
-        self.memory_check = self._create_checkbox("Enable Memory (Requires OpenAI)")
-        crew_layout.addRow(self.memory_check)
-
-        self.planning_check = self._create_checkbox("Enable Planning (Requires OpenAI)")
-        crew_layout.addRow(self.planning_check)
-
-        self.openai_warning = QLabel("⚠️ Memory and Planning require Official OpenAI provider")
-        self.openai_warning.setStyleSheet("color: #F5A623; font-size: 11px; font-style: italic; padding: 5px;")
-        self.openai_warning.setWordWrap(True)
-        crew_layout.addRow("", self.openai_warning)
-
-        crew_group.setLayout(crew_layout)
-        content_layout.addWidget(crew_group)
-
-        api_group = QGroupBox("🔑 API Keys")
-        api_group.setStyleSheet(llm_group.styleSheet())
-        api_layout = QFormLayout()
-        api_layout.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
-        api_layout.setSpacing(10)
-
-        sumpod_key_label = QLabel("SumoPod API Key:")
-        sumpod_key_label.setStyleSheet("color: #333; font-weight: normal;")
-        self.sumpod_key_input = QLineEdit()
-        self.sumpod_key_input.setPlaceholderText("Enter your SumoPod API key...")
-        self.sumpod_key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.sumpod_key_input.setStyleSheet(self._lineedit_style())
-        self._load_api_key("SUMOPOD_API_KEY", self.sumpod_key_input)
-        api_layout.addRow(sumpod_key_label, self.sumpod_key_input)
-
-        openai_key_label = QLabel("OpenAI API Key:")
-        openai_key_label.setStyleSheet("color: #333; font-weight: normal;")
-        self.openai_key_input = QLineEdit()
-        self.openai_key_input.setPlaceholderText("Enter your OpenAI API key...")
-        self.openai_key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.openai_key_input.setStyleSheet(self._lineedit_style())
-        self._load_api_key("OPENAI_API_KEY", self.openai_key_input)
-        api_layout.addRow(openai_key_label, self.openai_key_input)
-
-        self.api_note = QLabel("💡 API keys entered here are used temporarily. For persistent storage, edit the .env file.")
-        self.api_note.setStyleSheet("color: #F5A623; font-size: 10px; font-style: italic; padding: 5px;")
-        self.api_note.setWordWrap(True)
-        api_layout.addRow("", self.api_note)
-
-        api_group.setLayout(api_layout)
-        content_layout.addWidget(api_group)
-
-        save_btn = QPushButton("💾 Apply Settings")
-        save_btn.setFixedHeight(45)
+        # ── Apply button ────────────────────────────────────────
+        save_btn = QPushButton("Apply Settings")
+        save_btn.setFixedHeight(40)
         save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        save_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #EE4D2D;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #FF6347;
-            }
-            QPushButton:pressed {
-                background-color: #CC3D1D;
-            }
+        save_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.ACCENT}; color: white; border: none;
+                border-radius: 6px; font-weight: bold; font-size: 14px;
+            }}
+            QPushButton:hover {{ background-color: #357ABD; }}
+            QPushButton:pressed {{ background-color: #2A6AA0; }}
         """)
         save_btn.clicked.connect(self.on_save)
         content_layout.addWidget(save_btn)
 
         content_layout.addStretch()
-
-        scroll.setWidget(content_widget)
+        scroll.setWidget(content)
         main_layout.addWidget(scroll)
 
         self.on_provider_changed("SumoPod AI")
 
-    def _combobox_style(self) -> str:
+    # ── group builders ──────────────────────────────────────────
+    def _make_group(self, title: str) -> QGroupBox:
+        gb = QGroupBox(title)
+        gb.setStyleSheet(self.GROUP_STYLE)
+        ly = QFormLayout()
+        ly.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        ly.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+        ly.setHorizontalSpacing(16)
+        ly.setVerticalSpacing(12)
+        ly.setContentsMargins(0, 4, 0, 0)
+        gb.setLayout(ly)
+        return gb
+
+    def _build_llm_group(self) -> QGroupBox:
+        gb = self._make_group("LLM Configuration")
+        ly = gb.layout()
+
+        self.provider_combo = QComboBox()
+        self.provider_combo.addItems(["SumoPod AI", "Official OpenAI"])
+        self.provider_combo.setCurrentText("SumoPod AI")
+        self.provider_combo.setStyleSheet(self._combobox_style())
+        self.provider_combo.currentTextChanged.connect(self.on_provider_changed)
+        lbl = QLabel("Provider"); lbl.setStyleSheet(self._label_style())
+        ly.addRow(lbl, self.provider_combo)
+
+        self.model_combo = QComboBox()
+        self._update_model_combo("SumoPod AI")
+        self.model_combo.setStyleSheet(self._combobox_style())
+        lbl2 = QLabel("Model"); lbl2.setStyleSheet(self._label_style())
+        ly.addRow(lbl2, self.model_combo)
+
+        self.max_iter_spin = QSpinBox()
+        self.max_iter_spin.setRange(1, 50); self.max_iter_spin.setValue(10)
+        self.max_iter_spin.setStyleSheet(self._spinbox_style())
+        lbl3 = QLabel("Max Iterations"); lbl3.setStyleSheet(self._label_style())
+        ly.addRow(lbl3, self.max_iter_spin)
+
+        self.max_time_spin = QSpinBox()
+        self.max_time_spin.setRange(30, 600); self.max_time_spin.setValue(120)
+        self.max_time_spin.setStyleSheet(self._spinbox_style())
+        lbl4 = QLabel("Max Exec Time (s)"); lbl4.setStyleSheet(self._label_style())
+        ly.addRow(lbl4, self.max_time_spin)
+
+        return gb
+
+    def _build_browser_group(self) -> QGroupBox:
+        gb = self._make_group("Browser Settings")
+        ly = gb.layout()
+
+        self.headless_check = self._create_checkbox("Headless mode (no GUI)")
+        self.headless_check.setStyleSheet(self._checkbox_style())
+        ly.addRow(self.headless_check)
+
+        self.humanize_check = self._create_checkbox("Humanize mouse movement")
+        self.humanize_check.setChecked(True)
+        self.humanize_check.setStyleSheet(self._checkbox_style())
+        ly.addRow(self.humanize_check)
+
+        return gb
+
+    def _build_crew_group(self) -> QGroupBox:
+        gb = self._make_group("CrewAI Advanced")
+        ly = gb.layout()
+
+        self.memory_check = self._create_checkbox("Enable Memory (requires OpenAI)")
+        self.memory_check.setStyleSheet(self._checkbox_style())
+        ly.addRow(self.memory_check)
+
+        self.planning_check = self._create_checkbox("Enable Planning (requires OpenAI)")
+        self.planning_check.setStyleSheet(self._checkbox_style())
+        ly.addRow(self.planning_check)
+
+        self.openai_warning = QLabel("Memory & Planning only work with Official OpenAI provider.")
+        self.openai_warning.setStyleSheet(
+            "color: #666666; font-size: 11px; font-style: italic; padding: 2px 0;")
+        self.openai_warning.setWordWrap(True)
+        ly.addRow(self.openai_warning)
+
+        return gb
+
+    def _build_api_group(self) -> QGroupBox:
+        gb = self._make_group("API Keys")
+        ly = gb.layout()
+
+        self.sumpod_key_input = QLineEdit()
+        self.sumpod_key_input.setPlaceholderText("Enter SumoPod API key…")
+        self.sumpod_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.sumpod_key_input.setStyleSheet(self._lineedit_style())
+        self._load_api_key("SUMOPOD_API_KEY", self.sumpod_key_input)
+        lbl = QLabel("SumoPod Key"); lbl.setStyleSheet(self._label_style())
+        ly.addRow(lbl, self.sumpod_key_input)
+
+        self.openai_key_input = QLineEdit()
+        self.openai_key_input.setPlaceholderText("Enter OpenAI API key…")
+        self.openai_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.openai_key_input.setStyleSheet(self._lineedit_style())
+        self._load_api_key("OPENAI_API_KEY", self.openai_key_input)
+        lbl2 = QLabel("OpenAI Key"); lbl2.setStyleSheet(self._label_style())
+        ly.addRow(lbl2, self.openai_key_input)
+
+        note = QLabel("Keys are saved to .env and persist across restarts.")
+        note.setWordWrap(True)
+        note.setStyleSheet("color: #666666; font-size: 11px; margin-top: 4px;")
+        ly.addRow(note)
+
+        return gb
+
+    # ── checkbox style ─────────────────────────────────────────
+    @staticmethod
+    def _checkbox_style() -> str:
         return """
-            QComboBox {
-                background-color: #FFF8F5;
-                color: #333;
-                border: 2px solid #F5A623;
-                border-radius: 6px;
-                padding: 8px 12px;
-                min-width: 150px;
+            QCheckBox {
+                color: #1A1A1A; spacing: 8px; font-size: 13px;
             }
-            QComboBox:hover {
-                border-color: #EE4D2D;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox QAbstractItemView {
+            QCheckBox::indicator {
+                width: 18px; height: 18px;
+                border: 1px solid #AAAAAA; border-radius: 3px;
                 background-color: #FFFFFF;
-                color: #333;
-                border: 1px solid #F5A623;
-                selection-background-color: #EE4D2D;
             }
+            QCheckBox::indicator:checked {
+                background-color: #4A90D9; border-color: #357ABD;
+            }
+            QCheckBox::indicator:hover { border-color: #4A90D9; }
         """
 
-    def _spinbox_style(self) -> str:
-        return """
-            QSpinBox {
-                background-color: #FFF8F5;
-                color: #333;
-                border: 2px solid #F5A623;
-                border-radius: 6px;
-                padding: 6px 10px;
-                min-width: 80px;
-            }
-            QSpinBox:hover {
-                border-color: #EE4D2D;
-            }
-        """
-
-    def _lineedit_style(self) -> str:
-        return """
-            QLineEdit {
-                background-color: #FFFFFF;
-                color: #333;
-                border: 2px solid #F5A623;
-                border-radius: 6px;
-                padding: 8px 12px;
-                min-width: 200px;
-            }
-            QLineEdit:hover {
-                border-color: #EE4D2D;
-            }
-            QLineEdit:focus {
-                border-color: #EE4D2D;
-            }
-        """
-
+    # ── helpers ─────────────────────────────────────────────────
     def _load_api_key(self, key_name: str, input_field: QLineEdit):
         load_dotenv()
         api_key = os.environ.get(key_name, "")
         if api_key:
             input_field.setText(api_key)
-            input_field.setPlaceholderText(f"Loaded from .env (change here to override)")
+            input_field.setPlaceholderText("Loaded from .env (change to override)")
 
     def _create_checkbox(self, text: str) -> QCheckBox:
         cb = QCheckBox(text)
-        cb.setStyleSheet("""
-            QCheckBox {
-                color: #333;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border: 2px solid #F5A623;
-                border-radius: 4px;
-                background-color: #FFFFFF;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #EE4D2D;
-                border-color: #EE4D2D;
-            }
-            QCheckBox::indicator:hover {
-                border-color: #EE4D2D;
-            }
-        """)
         return cb
 
     def _update_model_combo(self, provider: str):
@@ -535,30 +701,18 @@ class SettingsPanel(QDialog):
 
     def on_provider_changed(self, provider: str):
         self._update_model_combo(provider)
-
-        if provider == "SumoPod AI":
-            self.memory_check.setChecked(False)
-            self.memory_check.setEnabled(False)
-            self.planning_check.setChecked(False)
-            self.planning_check.setEnabled(False)
-            self.openai_warning.setVisible(True)
-        else:
-            self.memory_check.setEnabled(True)
-            self.planning_check.setEnabled(True)
-            self.openai_warning.setVisible(False)
+        is_sumopod = (provider == "SumoPod AI")
+        self.memory_check.setChecked(False); self.memory_check.setEnabled(not is_sumopod)
+        self.planning_check.setChecked(False); self.planning_check.setEnabled(not is_sumopod)
+        self.openai_warning.setVisible(is_sumopod)
 
     def on_save(self):
         sumpod_key = self.sumpod_key_input.text().strip()
         openai_key = self.openai_key_input.text().strip()
-        
-        if sumpod_key:
-            os.environ["SUMOPOD_API_KEY"] = sumpod_key
-        if openai_key:
-            os.environ["OPENAI_API_KEY"] = openai_key
-
+        if sumpod_key: os.environ["SUMOPOD_API_KEY"] = sumpod_key
+        if openai_key: os.environ["OPENAI_API_KEY"] = openai_key
         self._save_to_env_file(sumpod_key, openai_key)
-
-        settings = {
+        self.settings_changed.emit({
             "provider": self.provider_combo.currentText(),
             "model": self.model_combo.currentText(),
             "max_iter": self.max_iter_spin.value(),
@@ -568,34 +722,25 @@ class SettingsPanel(QDialog):
             "memory": self.memory_check.isChecked(),
             "planning": self.planning_check.isChecked(),
             "sumpod_api_key": sumpod_key if sumpod_key else os.environ.get("SUMOPOD_API_KEY", ""),
-            "openai_api_key": openai_key if openai_key else os.environ.get("OPENAI_API_KEY", "")
-        }
-        self.settings_changed.emit(settings)
+            "openai_api_key": openai_key if openai_key else os.environ.get("OPENAI_API_KEY", ""),
+        })
         self.accept()
 
     def _save_to_env_file(self, sumpod_key: str, openai_key: str):
-        env_path = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
-        env_path = os.path.abspath(env_path)
-
+        env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
         env_lines = {}
         if os.path.exists(env_path):
             with open(env_path, "r", encoding="utf-8") as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith("#") and "=" in line:
-                        key, _, val = line.partition("=")
-                        env_lines[key.strip()] = val.strip()
-
-        if sumpod_key:
-            env_lines["SUMOPOD_API_KEY"] = sumpod_key
-        if openai_key:
-            env_lines["OPENAI_API_KEY"] = openai_key
-
+                        k, _, v = line.partition("=")
+                        env_lines[k.strip()] = v.strip()
+        if sumpod_key: env_lines["SUMOPOD_API_KEY"] = sumpod_key
+        if openai_key: env_lines["OPENAI_API_KEY"] = openai_key
         env_lines.setdefault("SUMOPOD_BASE_URL", "https://ai.sumopod.com/v1")
         env_lines.setdefault("OPENAI_BASE_URL", "https://api.openai.com/v1")
-
         with open(env_path, "w", encoding="utf-8") as f:
-            f.write("# ShopeeAgent Configuration\n")
-            f.write("# Generated by Settings Panel\n\n")
-            for key, val in env_lines.items():
-                f.write(f"{key}={val}\n")
+            f.write("# ShopeeAgent Configuration\n# Generated by Settings Panel\n\n")
+            for k, v in env_lines.items():
+                f.write(f"{k}={v}\n")

@@ -4,13 +4,21 @@ from PyInstaller.utils.hooks import collect_submodules
 
 block_cipher = None
 
+site_pkg = r"C:\Users\THINKPAD\AppData\Local\Programs\Python\Python311\Lib\site-packages"
+
 a = Analysis(
     ['camoagent.py'],
     pathex=[],
     binaries=[],
     datas=[
         ('config', 'config'),
+        ('shopeeagentcrop.ico', '.'),
         ('.env', '.'),
+        # Camoufox YAML data files
+        (os.path.join(site_pkg, 'camoufox', 'browserforge.yml'), 'camoufox'),
+        (os.path.join(site_pkg, 'camoufox', 'warnings.yml'), 'camoufox'),
+        # language_tags data (needed by camoufox > locale)
+        (os.path.join(site_pkg, 'language_tags', 'data'), 'language_tags/data'),
     ],
     hiddenimports=[
         'crewai',
@@ -46,7 +54,8 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='CamoAgent',
+    icon='shopeeagentcrop.ico',
+    name='ShopeeAgent',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

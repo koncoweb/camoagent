@@ -77,15 +77,15 @@ try:
         def __init__(self, argv):
             super().__init__(argv)
             self.setApplicationName("ShopeeAgent")
-            self.setApplicationVersion("1.2.0")
+            self.setApplicationVersion("1.3.1")
             
             logger.info("Initializing ShopeeAgentApp...")
             
             self.setStyleSheet("""
                 QToolTip {
                     color: #1A1A1A;
-                    background-color: #FFF8E1;
-                    border: 1px solid #EE4D2D;
+                    background-color: #F5F5F5;
+                    border: 1px solid #D0D0D0;
                     padding: 6px 10px;
                     border-radius: 6px;
                     font-size: 12px;
@@ -121,6 +121,21 @@ try:
                     crew_executor=self.crew_executor
                 )
                 logger.info("MainWindow initialized")
+                
+                # Set window icon for taskbar and title bar
+                # PyInstaller bundle path support
+                if getattr(sys, 'frozen', False):
+                    base_dir = sys._MEIPASS
+                else:
+                    base_dir = os.path.dirname(__file__)
+                icon_path = os.path.join(base_dir, 'shopeeagentcrop.ico')
+                if os.path.exists(icon_path):
+                    from PyQt6.QtGui import QIcon
+                    self.main_window.setWindowIcon(QIcon(icon_path))
+                    self.setWindowIcon(QIcon(icon_path))
+                    logger.info(f"Window icon set: {icon_path}")
+                else:
+                    logger.warning(f"Icon not found: {icon_path}")
             except Exception as e:
                 logger.error(f"Failed to initialize MainWindow: {e}")
                 raise

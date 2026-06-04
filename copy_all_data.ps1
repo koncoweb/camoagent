@@ -26,11 +26,11 @@ foreach ($pkg in $packages) {
 }
 
 # Copy icon to dist root
-$iconSrc = Join-Path (Split-Path (Split-Path $dist)) "logoicon.png"
+$iconSrc = Join-Path (Split-Path (Split-Path $dist)) "shopeeagentcrop.ico"
 if (Test-Path $iconSrc) {
     $iconDest = Split-Path $dist
-    Copy-Item $iconSrc "$iconDest\logoicon.png" -Force
-    Write-Host "OK: logoicon.png copied to dist"
+    Copy-Item $iconSrc "$iconDest\shopeeagentcrop.ico" -Force
+    Write-Host "OK: shopeeagentcrop.ico copied to dist"
 }
 
 Write-Host ""
